@@ -5,12 +5,12 @@ A simple analyser of the legacy backend BL-EGF using Moose and Roassal3 for visu
 
 	The metacello command to run in a playground, to install your packages.
 
-\`\`\`smalltalk
+```smalltalk
 Metacello new
   githubUser: 'Evref-BL' project: 'AnalysisMooseEGF' commitish: 'main' path: 'src';
   baseline: 'AnalysisMooseEGF';
   load
-\`\`\`
+```
 
 ## Playground example 
 
