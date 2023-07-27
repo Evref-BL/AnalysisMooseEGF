@@ -314,9 +314,8 @@ RSeGFService >> buildInvocationGraphCanvas [
 		srcCode := method sourceText.
 
 		shape := self buildMethodBox: method.
-		shape @ RSHighlightable.
 		shape when: RSMouseClick do: [ :evt | " 1 halt." ] for: self.
-		
+
 		shapes add: shape ].
 
 
@@ -390,25 +389,21 @@ RSeGFService >> buildInvocationGraphCanvasWithoutGetSet [
 		| shape method srcCode |
 		method := assoc key.
 		srcCode := method sourceText.
-		
-		(((method name beginsWith: 'get') or: [ (method name beginsWith: 'set') ]) or: [ (method name beginsWith: 'is') ]) ifTrue: [
-		(self hasSubString: srcCode containing: self sqlKeywords ) ifTrue: [ 
-			shape := self buildMethodBox: method.
-			shape @ RSHighlightable.
-			shape when: RSMouseClick do: [ :evt | " 1 halt." ] for: self.
-			shapes add: shape
-			 ]
-		]ifFalse: [ 
-			shape := self buildMethodBox: method.
-			shape @ RSHighlightable.
-			shape when: RSMouseClick do: [ :evt | " 1 halt." ] for: self.
-			shapes add: shape
-		 ] .
 
-
-		
-		
-		 ].
+		(((method name beginsWith: 'get') or: [ 
+			  method name beginsWith: 'set' ]) or: [ 
+			 method name beginsWith: 'is' ])
+			ifTrue: [ 
+				(self hasSubString: srcCode containing: self sqlKeywords) ifTrue: [ 
+					shape := self buildMethodBox: method.
+					shape @ RSHighlightable.
+					shape when: RSMouseClick do: [ :evt | " 1 halt." ] for: self.
+					shapes add: shape ] ]
+			ifFalse: [ 
+				shape := self buildMethodBox: method.
+				shape @ RSHighlightable.
+				shape when: RSMouseClick do: [ :evt | " 1 halt." ] for: self.
+				shapes add: shape ] ].
 
 
 
@@ -501,9 +496,108 @@ RSeGFService >> createLegend: aStringArray [
 	^ legend
 ]
 
+{ #category : #'as yet unclassified' }
+RSeGFService >> debugCanvasBuilding [
+
+	| ssShapes shapes labeled start legend |
+	ssShapes := eGFInvocationModel methods copy.
+
+	canvas := RSCanvas new.
+	shapes := OrderedCollection new.
+
+
+
+	labeled := RSLabeled new.
+	labeled highlightable.
+
+	ssShapes associations do: [ :assoc | 
+		| shape method srcCode |
+		method := assoc key.
+		srcCode := method sourceText.
+
+		(((method name beginsWith: 'get') or: [ 
+			  method name beginsWith: 'set' ]) or: [ 
+			 method name beginsWith: 'is' ])
+			ifTrue: [ 
+				(self hasSubString: srcCode containing: self sqlKeywords) ifTrue: [ 
+					shape := self buildMethodBox: method.
+					shape @ RSHighlightable.
+					shape when: RSMouseClick do: [ :evt | " 1 halt." ] for: self.
+					shapes add: shape ] ]
+			ifFalse: [ 
+				shape := self buildMethodBox: method.
+				shape @ RSHighlightable.
+				shape when: RSMouseClick do: [ :evt | " 1 halt." ] for: self.
+				shapes add: shape ] ].
+
+	shapes := self filterShapes: shapes with: [ :shape | 
+		          | srcCode |
+		          srcCode := shape model sourceText.
+		          srcCode beginsWith: 'public' ].
+
+
+	"add a starting indicator as node in the canvas, linked to the entry point"
+	start := 'START'.
+	ssShapes
+		at: start
+		ifAbsentPut: eGFInvocationModel entryPoint asOrderedCollection.
+
+	shapes := shapes asOrderedCollection.
+
+	shapes add: (RSLabel new
+			 size: 10;
+			 model: start;
+			 draggable;
+			 color: Color black).
+
+
+	canvas addAll: shapes.
+
+	RSEdgeBuilder arrowedLine
+		borderColor: (Color gray alpha: 0.3);
+		withBorderAttachPoint;
+		canvas: canvas;
+		connectToAll: [ :famixInvoc | ssShapes at: famixInvoc ].
+
+
+	RSHorizontalTreeLayout new on: canvas nodes.
+
+	"	RSForceBasedLayout new
+		charge: -800;
+		on: canvas nodes."
+
+	"canvas @ RSForceLayoutSteppingInteraction."
+	"stepping := RSForceLayoutSteppingInteraction new.
+	stepping layout
+		length: 80;
+		charge: -300.
+canvas @ stepping."
+
+	canvas edges pushBack.
+	canvas @ RSCanvasController.
+	canvas zoomToFit.
+
+	legend := self createLegend:
+		          { 'rectangle = methods invoked from the service endpoint'.
+		          'rectangle size = height: method cyclomatic Complexity; width: method line of codes'.
+		          'rectangle color = red: contain SPL; blue: based color'.
+		          'rectangle border = only if the method is only invoked by other methods of this service' }.
+
+
+	^ canvas
+]
+
 { #category : #testing }
 RSeGFService >> eGFInvocationModel: anEGFInvocationModel [
 	eGFInvocationModel := anEGFInvocationModel.
+]
+
+{ #category : #'as yet unclassified' }
+RSeGFService >> filterShapes: shapes with: aBlock [
+	"return a collection of RS object filter by the statement given in aBlock."
+	^ shapes select: [ :elmt |
+			aBlock value: elmt.
+		 ]
 ]
 
 { #category : #testing }

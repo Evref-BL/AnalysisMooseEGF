@@ -156,27 +156,6 @@ EGFInvocationModel >> computeClassDependenciesV2From: methods [
 					at: class
 					put: ((methods at: mth) collect: [ :dep | dep parentType ]) asSet ] ].
 
-	"recBlock := [ :root | ""explore next invocation""
-	            root keysDo: [ :key | 
-		            seen at: key ifAbsent: [ 
-			            seen at: key put: true.
-
-
-			            classDep at: key parentType put: Set new.
-			            (root at: key) keysDo: [ :invoc | 
-				            classDep
-					            at: key parentType
-					            ifPresent: [ :v | v add: invoc parentType ]
-					            ifAbsent: [ 
-						            classDep
-							            at: key parentType
-							            put: (Set newFrom: { invoc parentType }) ] ].
-
-
-			            recBlock value: (root at: key) ] ] ].
-
-	graph valuesDo: [ :dicInvo | 
-		dicInvo keysDo: [ :key | recBlock value: (dicInvo at: key) ] ]."
 
 	^ classDeps
 ]
@@ -221,6 +200,11 @@ EGFInvocationModel >> computeClassGroup [
 EGFInvocationModel >> computeClassGroupFrom: graph [
 
 	| recBlock seen seenClasses |
+	self
+		deprecated: 'Use #computeClassGroupV2From: instead'
+		on: '27 July 2023'
+		in:
+		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
 	seen := Dictionary new.
 	seenClasses := Dictionary new.
 
@@ -243,6 +227,34 @@ EGFInvocationModel >> computeClassGroupFrom: graph [
 
 	graph valuesDo: [ :dicInvo | 
 		dicInvo keysDo: [ :key | recBlock value: (dicInvo at: key) ] ].
+
+	^ seenClasses
+]
+
+{ #category : #compute }
+EGFInvocationModel >> computeClassGroupV2From: methods [
+
+	"return a dictionnary where the class are the keys and their methods are the values "
+
+	| seen seenClasses |
+	seen := Dictionary new.
+	seenClasses := Dictionary new.
+
+
+
+	methods keysDo: [ :meth | 
+		| class |
+		class := meth parentType.
+
+		seenClasses
+			at: class
+			ifPresent: [ :v | v add: meth ]
+			ifAbsent: [ seenClasses at: class put: (Set newFrom: { meth }) ] ].
+		
+		seenClasses associations do:  [ :assoc |
+			seenClasses at: assoc key put: ((assoc value) asOrderedCollection) . 
+			
+			 ].
 
 	^ seenClasses
 ]
@@ -284,59 +296,6 @@ EGFInvocationModel >> computeMethodsSetFrom: graph [
 	^ methods
 ]
 
-{ #category : #script }
-EGFInvocationModel >> countCoverageLoC [
-
-	| loc recBlock coverage seen cycloComplexity seenClasses |
-	TinyLogger default
-		ensureFileLoggerNamed: 'Progress.log';
-		"This will delete the previous 'Progress.log' file""Add the file logger only if not already"
-			clearLog.
-
-	coverage := self analysis.
-	loc := coverage keys first sourceText lines size.
-	cycloComplexity := coverage keys first cyclomaticComplexity.
-
-	seen := Dictionary new.
-	seenClasses := Dictionary new.
-
-
-	recBlock := [ :root | 
-	            root keysDo: [ :key | "line of code"
-		            loc := loc + key sourceText lines size.
-		            ('loc : ' , loc printString) record.
-		            "complexity"
-		            cycloComplexity := cycloComplexity
-		                               + key cyclomaticComplexity.
-		            ('cyclomaticComplexity : ' , cycloComplexity printString)
-			            record.
-		            "1 halt."
-		            seenClasses
-			            at: key parentType
-			            ifPresent: [ :v | v add: key ]
-			            ifAbsent: [ 
-			            seenClasses
-				            at: key parentType
-				            put: (Set newFrom: { key }) ] ].
-
-
-
-	            "explore next invocation"
-	            root keysDo: [ :key | 
-		            seen at: key ifAbsent: [ 
-			            seen at: key put: true.
-			            recBlock value: (root at: key) ] ] ].
-
-	coverage valuesDo: [ :dicInvo | 
-		dicInvo keysDo: [ :key | loc := loc + key sourceText lines size ].
-		dicInvo keysDo: [ :key | 
-			cycloComplexity := cycloComplexity + key cyclomaticComplexity ].
-
-		dicInvo keysDo: [ :key | recBlock value: (dicInvo at: key) ] ].
-
-	^ loc
-]
-
 { #category : #accessing }
 EGFInvocationModel >> entryPoint [
 
@@ -352,7 +311,12 @@ EGFInvocationModel >> entryPoint: aFamixJavaMethod [
 { #category : #script }
 EGFInvocationModel >> flattenInvocationGraph [
 
-	|  recBlock  seen  |
+	| recBlock seen |
+	self
+		deprecated: 'Use #nothing instead'
+		on: '27 July 2023'
+		in:
+		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
 	seen := Dictionary new.
 
 	seen at: self entryPoint ifAbsent: [ 
@@ -414,6 +378,12 @@ EGFInvocationModel >> initFrom: graph [
 { #category : #intialization }
 EGFInvocationModel >> initFromInvocationGraph: aGraph andMethod: methods [
 
+	self
+		deprecated: 'Use #initFromMethods:andAnEntryPoint: instead'
+		on: '27 July 2023'
+		in:
+		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
+
 	classGroup := Set new.
 	classDependencies := Dictionary new.
 
@@ -423,17 +393,54 @@ EGFInvocationModel >> initFromInvocationGraph: aGraph andMethod: methods [
 	flattenMethods := methods.
 
 
-	self classGroup: (self computeClassGroupFrom: aGraph).
-	self classDependencies: (self computeClassDependenciesV2From: methods)
+	self classGroup: (self computeClassGroupV2From: methods).
+	self classDependencies:
+		(self computeClassDependenciesV2From: methods)
+]
+
+{ #category : #intialization }
+EGFInvocationModel >> initFromMethods: methods andAnEntryPoint: aMethod [
+
+	classGroup := Set new.
+	classDependencies := Dictionary new.
+
+	self entryPoint: aMethod.
+
+	flattenMethods := methods.
+
+	self classGroup: (self computeClassGroupV2From: methods).
+	self classDependencies:
+		(self computeClassDependenciesV2From: methods)
+]
+
+{ #category : #intialization }
+EGFInvocationModel >> initialize [
+
+	classGroup := Set new.
+	classDependencies := Dictionary new.
+	flattenMethods := Dictionary new.
+	entryPoint := nil.
 ]
 
 { #category : #accessing }
 EGFInvocationModel >> invocationGraph [
+
+	self
+		deprecated: 'Use #nothing instead'
+		on: '27 July 2023'
+		in:
+		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
 	^ invocationGraph
 ]
 
 { #category : #setter }
 EGFInvocationModel >> invocationGraph: aCollection [
+
+	self
+		deprecated: 'Use #nothing instead'
+		on: '27 July 2023'
+		in:
+		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
 
 	invocationGraph := aCollection
 ]
