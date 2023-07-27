@@ -97,6 +97,11 @@ EGFInvocationModel >> computeClassDependenciesFrom: graph [
 	"
 
 	| recBlock seen classDep |
+	self
+		deprecated: 'Use #computeClassDependenciesV2From: instead'
+		on: '27 July 2023'
+		in:
+		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
 	seen := Dictionary new.
 	classDep := Dictionary new.
 
@@ -134,20 +139,22 @@ EGFInvocationModel >> computeClassDependenciesV2From: methods [
 	if A:mA() invokes B:mB() then the their is a class dependencies from A to B.	
 	"
 
-	| recBlock seen classDeps |
+	| seen classDeps |
 	seen := Dictionary new.
 	classDeps := Dictionary new.
-	
-	methods keysDo: [ :mth |
-		|class|
-		
+
+	methods keysDo: [ :mth | 
+		| class |
 		class := mth parentType.
-		
-		classDeps at: class 
-			ifPresent:[ :val |  val addAll: ((methods at: mth) collect: [:dep | dep parentType])  ] 
-			ifAbsent: [ classDeps at: class put: ((methods at: mth) collect: [:dep | dep parentType]) asSet ]
-		 
-		 ].
+
+		classDeps
+			at: class
+			ifPresent: [ :val | 
+				val addAll: ((methods at: mth) collect: [ :dep | dep parentType ]) ]
+			ifAbsent: [ 
+				classDeps
+					at: class
+					put: ((methods at: mth) collect: [ :dep | dep parentType ]) asSet ] ].
 
 	"recBlock := [ :root | ""explore next invocation""
 	            root keysDo: [ :key | 

@@ -120,9 +120,13 @@ EGFEvolAnalysis >> computeInvocationGraphOfUc: ucName andMethodName: mthName wit
 
 	"recursive visiting block"
 	block := [ :method :outgoing | "look throught all outgoing entities of m and search the invocation m makes"
-	         method queryAllOutgoing
-		         select: #isInvocation
-		         thenDo: [ :invocation | 
+	         ((method queryAllOutgoing select: #isInvocation)
+		          asOrderedCollection sort: [ :assoc1 :assoc2 | 
+		          | meth1 meth2 |
+		          meth1 := assoc1 value.
+		          meth2 := assoc2 value.
+		          meth1 sourceAnchor endPos < meth2 sourceAnchor endPos ]) 
+		         do: [ :invocation | 
 			         | methodInvoc |
 			         "select any candidate method that could be the receiver candidat of m"
 			         methodInvoc := invocation candidates anyOne.
@@ -148,12 +152,14 @@ EGFEvolAnalysis >> computeInvocationGraphOfUc: ucName andMethodName: mthName wit
 	"recursivly explore the methods invocations graph"
 	res at: meth put: (block value: meth value: Dictionary new).
 
-	
+
 
 	withCache ifTrue: [ 
 		invocationGraphCache at: ucName , mthName put: res.
 
-		methodInvokedCache at: ucName , mthName put: (self flattenInvocationGraph: res) ].
+		methodInvokedCache
+			at: ucName , mthName
+			put: (self flattenInvocationGraph: res) ].
 
 	^ self
 ]
@@ -213,6 +219,11 @@ EGFEvolAnalysis >> flattenInvocationGraph: invocationGraph [
 
 
 
+"	seen associations do: [ :assoc | 
+		self haltIf: [ assoc value size > 3]. 
+		assoc value sort: [ :meth1 :meth2 | 
+			meth1 sourceAnchor endPos  < meth2 sourceAnchor endPos  ] ]."
+
 	^ seen
 ]
 
@@ -267,6 +278,65 @@ EGFEvolAnalysis >> invocationGraphOfUcTiersComptableImplWithFournirListeTiersCom
 		        m name = 'fournirListeTiersComptablesIHM' ].
 	res at: meth put: (block value: meth value: Dictionary new).
 	^ res
+]
+
+{ #category : #script }
+EGFEvolAnalysis >> newComputeInvocationGraphOfUc: ucName andMethodName: mthName withCache: withCache [
+
+	"ucName := 'UcTiersComptableImpl'.
+	mthName := 'fournirListeTiersComptablesIHM'."
+
+	<script>
+	| evol ucs visitedMethods res block meth |
+	evol := MooseModel root at: 1.
+	"get all class that is an UCs in eGF"
+	ucs := evol allClasses select: [ :c | 
+		       (c name beginsWith: 'uc' caseSensitive: false) and: [ 
+			       c name endsWith: 'impl' caseSensitive: false ] ].
+
+	visitedMethods := Dictionary new.
+	res := Dictionary new.
+
+	"recursive visiting block"
+	block := [ :method :outgoing | 
+	         | methodInvok |
+	         methodInvok := (((method queryAllOutgoing select:
+		                           #isInvocation) asOrderedCollection sort: [ 
+		                          :assoc1 
+		                          :assoc2 | 
+		                          | meth1 meth2 |
+		                          meth1 := assoc1 value.
+		                          meth2 := assoc2 value.
+		                          meth1 sourceAnchor endPos
+		                          < meth2 sourceAnchor endPos ]) collect: [ 
+		                         :invocation | 
+		                         | methodInvoc |
+		                         methodInvoc := invocation candidates anyOne.
+		                         methodInvoc ]) select: [ :m | 
+		                        m isStub = false ].
+
+	         visitedMethods at: method ifAbsentPut: [ 
+					methodInvok asOrderedDictionary.
+		 ] ].
+
+	"get methods of the UC named from parameters that are named named also from parameters"
+	meth := (ucs detect: [ :uc | uc name = ucName ]) methods detect: [ :m | 
+		        m name = mthName ].
+
+
+	"recursivly explore the methods invocations graph"
+	res at: meth put: (block value: meth value: Dictionary new).
+
+
+
+	withCache ifTrue: [ 
+		invocationGraphCache at: ucName , mthName put: res.
+
+		methodInvokedCache
+			at: ucName , mthName
+			put: (self flattenInvocationGraph: res) ].
+
+	^ self
 ]
 
 { #category : #initialization }
