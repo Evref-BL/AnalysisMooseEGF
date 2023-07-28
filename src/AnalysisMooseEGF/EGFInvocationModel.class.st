@@ -308,6 +308,64 @@ EGFInvocationModel >> entryPoint: aFamixJavaMethod [
 	entryPoint := aFamixJavaMethod
 ]
 
+{ #category : #'as yet unclassified' }
+EGFInvocationModel >> exportCSV [
+
+	| export |
+	export := String new.
+	export := export , 'Class name, Method name, Complexity cyclo, LoC'
+	          , String cr.
+	flattenMethods associations do: [ :assoc | 
+		| meth |
+		meth := assoc key.
+
+		export := export
+		          ,
+		          (meth parentType mooseName replaceAllRegex: ',' with: '_')
+		          , ',' , (meth signature replaceAllRegex: ',' with: '_')
+		          , ',' , meth cyclomaticComplexity printString , ','
+		          , meth sourceText lines size printString , String cr ].
+	^ export
+]
+
+{ #category : #'as yet unclassified' }
+EGFInvocationModel >> exportComplexityCycloDiagramCSV [
+
+	"export in CSV format a table of all methods with their respective cyclomatic Complexity. Sort the methods in respect of the invocation order."
+
+	| export buildCsv recBlock seen safeGuard |
+	export := 'method name, cycloComplexity' , String cr.
+	safeGuard := 0.
+	seen := Dictionary new.
+
+	buildCsv := [ :method | 
+	            export := export
+	                      ,
+	                      (method signature
+		                       replaceAllRegex: ','
+		                       with: '_') , ','
+	                      , method cyclomaticComplexity printString
+	                      , String cr ].
+
+
+	recBlock := [ :mth | 
+	            safeGuard > 100000 ifTrue: [ ^ export ] ifFalse: [safeGuard := safeGuard + 1].
+	            seen at: mth ifAbsent: [ 
+		            seen at: mth put: true.
+		            (flattenMethods at: mth) do: [ :invoc | 
+			            buildCsv value: invoc.
+			            (flattenMethods at: invoc) do: [ :mthChild | 
+				            recBlock value: mthChild ] ] ] ].
+
+	buildCsv value: entryPoint.
+
+
+
+	recBlock value: entryPoint.
+
+	^ export
+]
+
 { #category : #script }
 EGFInvocationModel >> flattenInvocationGraph [
 
@@ -419,7 +477,7 @@ EGFInvocationModel >> initialize [
 	classGroup := Set new.
 	classDependencies := Dictionary new.
 	flattenMethods := Dictionary new.
-	entryPoint := nil.
+
 ]
 
 { #category : #accessing }

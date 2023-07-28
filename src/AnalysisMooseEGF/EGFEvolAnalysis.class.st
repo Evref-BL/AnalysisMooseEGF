@@ -212,24 +212,6 @@ EGFEvolAnalysis >> createEGFModelFromUCName: UCname andMethodName: methodName [
 ]
 
 { #category : #'as yet unclassified' }
-EGFEvolAnalysis >> exportCSV: methods [
-
-	| export |
-	export := String new.
-	export := export , 'Class name, Method name, Complexity cyclo, LoC'
-	          , String cr.
-	methods associations do: [ :assoc | 
-		| meth |
-		meth := assoc key.
-
-		export := export , (meth parentType mooseName replaceAllRegex: ',' with: '_') , ','
-		          , (meth signature replaceAllRegex: ',' with: '_') , ','
-		          , meth cyclomaticComplexity printString , ','
-		          , meth sourceText lines size printString , String cr ].
-	^ export
-]
-
-{ #category : #'as yet unclassified' }
 EGFEvolAnalysis >> flattenInvocationGraph: invocationGraph [
 
 	"retrieve the invocation methods graph as a flatten dictionary"
