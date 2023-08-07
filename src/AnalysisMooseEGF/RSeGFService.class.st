@@ -126,29 +126,30 @@ RSeGFService >> buildClassDependenciesCanvas [
 
 	"canvas showEncompassingRectangles."
 	shapes := ssShapes associations collect: [ :assoc | 
-		          | group label s methods |
+		          | group label composite methods |
 		          group := RSGroup new.
 
 		          methods := assoc value collect: [ :met | 
 			                     self buildMethodBox: met ].
-					
-					methods := self applyFiltersOn: methods.
+
+		          methods := self applyFiltersOn: methods.
 
 		          RSGridLayout on: methods.
-		          s := RSComposite new
-			               color: (Color lightGray alpha: 0.4);
-			               shapes: methods;
-			               yourself.
-		          s extent: s extent + 10.
+		          "composite that regroup methods of an Class"
+		          composite := RSComposite new
+			                       color: (Color lightGray alpha: 0.4);
+			                       shapes: methods;
+			                       yourself.
+		          composite extent: composite extent + 100.
 		          "label of class group"
 		          label := RSLabel new
 			                   text: assoc key name;
 			                   yourself.
+		          "create the group for one class and its method"
 		          group
 			          add: label;
-			          add: s.
+			          add: composite.
 		          RSVerticalLineLayout new alignCenter on: group.
-
 		          RSComposite new
 			          shapes: group;
 			          model: assoc key;
