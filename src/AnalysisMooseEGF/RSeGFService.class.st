@@ -3,7 +3,8 @@ Class {
 	#superclass : #Object,
 	#instVars : [
 		'eGFInvocationModel',
-		'canvas'
+		'canvas',
+		'allMethods'
 	],
 	#category : #AnalysisMooseEGF
 }
@@ -15,11 +16,13 @@ RSeGFService >> WIPNewClassDependenciesCanvas [
 
 	"scope: class-variables  &  instance-variables"
 
-		| packagesRegExp packages popup label padding high arrow allClasses allMethods |
+	| packagesRegExp packages popup label padding high arrow allClasses |
+	allMethods := nil.
+
 	packagesRegExp := { 'Roassal3-Shapes' }.
 
-	packages := packagesRegExp flatCollect: [ :regExp |
-		            RPackageOrganizer default packages select: [ :p |
+	packages := packagesRegExp flatCollect: [ :regExp | 
+		            RPackageOrganizer default packages select: [ :p | 
 			            regExp match: p packageName ] ].
 
 	canvas := RSCanvas new.
@@ -31,12 +34,12 @@ RSeGFService >> WIPNewClassDependenciesCanvas [
 	arrow := RSShapeFactory arrowedLine
 		         withBorderAttachPoint;
 		         color: Color blue.
-	packages := packages collect: [ :p |
+	packages := packages collect: [ :p | 
 		            | classes pkg |
 		            classes := p definedClasses
-			                       collect: [ :cls |
+			                       collect: [ :cls | 
 				                       | methods |
-				                       methods := cls methods collect: [ :met |
+				                       methods := cls methods collect: [ :met | 
 					                                  RSBox new
 						                                  extent: 5 @ met linesOfCode;
 						                                  @ popup;
@@ -74,20 +77,21 @@ RSeGFService >> WIPNewClassDependenciesCanvas [
 	allMethods := allClasses flatCollect: #nodes.
 
 	high
-		when: RSHighlightEvent do: [ :evt |
+		when: RSHighlightEvent do: [ :evt | 
 			| methods |
-			methods := allClasses flatCollect: [ :class |
+			1 halt.
+			methods := allClasses flatCollect: [ :class | 
 					           (class model thoroughWhichMethodsReferTo:
-							            evt shape model selector) collect: [ :method |
+							            evt shape model selector) collect: [ :method | 
 							           method ] ].
-			methods := methods collect: [ :met |
+			methods := methods collect: [ :met | 
 					           arrow copy
 						           from: evt shape;
 						           to: (allMethods shapeFromModel: met) ].
 			canvas addAll: methods.
 			canvas propertyAt: #methods put: methods ]
 		for: self;
-		when: RSUnHighlightEvent do: [ :evt |
+		when: RSUnHighlightEvent do: [ :evt | 
 			(canvas propertyAt: #methods ifAbsent: [ #(  ) ]) do: #remove ]
 		for: self.
 
@@ -98,9 +102,8 @@ RSeGFService >> WIPNewClassDependenciesCanvas [
 { #category : #'as yet unclassified' }
 RSeGFService >> applyFiltersOn: shapes [
 
-	"apply 3 commons filter on the shapes"
+	"apply 3 commons filter on the shapes""color the border of method are only invoked by method on this graph"
 
-	"color the border of method are only invoked by method on this graph"
 	(self
 		 filterShapes: shapes
 		 with: self filterShapesOnHavingForeignSenders) do: [ :shp | 
@@ -108,7 +111,13 @@ RSeGFService >> applyFiltersOn: shapes [
 
 	"color the method that contains SQL references in their code"
 	(self filterShapes: shapes with: self filterShapesOnReferencingSQL) 
-		do: [ :shp | shp color: Color red translucent ].
+		do: [ :shp | shp color: (Color red alpha: 0.4) ].
+
+	"color in deep red the sql element that explicitly call for sql statement"
+	(self filterShapes: shapes with: self filterShapesOnExecutingSQL) 
+		do: [ :shp | shp color: Color red ].
+
+
 
 	"finally, remove methods that are get/set"
 	^ self filterShapes: shapes with: self filterShapesOnGettterSetter
@@ -118,6 +127,8 @@ RSeGFService >> applyFiltersOn: shapes [
 RSeGFService >> buildClassDependenciesCanvas [
 
 	| ssShapes ssClassDep shapes |
+	allMethods := RSGroup new.
+
 	ssShapes := eGFInvocationModel classGroup copy.
 	ssClassDep := eGFInvocationModel classDependencies copy.
 
@@ -133,6 +144,8 @@ RSeGFService >> buildClassDependenciesCanvas [
 			                     self buildMethodBox: met ].
 
 		          methods := self applyFiltersOn: methods.
+
+		         	allMethods addAll: methods. 
 
 		          RSGridLayout on: methods.
 		          "composite that regroup methods of an Class"
@@ -159,7 +172,7 @@ RSeGFService >> buildClassDependenciesCanvas [
 
 
 	canvas addAll: shapes.
-
+	
 	RSLineBuilder arrowedLine
 		withBorderAttachPoint;
 		canvas: canvas;
@@ -243,6 +256,8 @@ RSeGFService >> buildEdgeBundlingCanvas [
 RSeGFService >> buildInvocationGraphCanvas [
 
 	| ssShapes shapes labeled start legend |
+	allMethods := RSGroup new.
+
 	ssShapes := eGFInvocationModel methods copy.
 
 	canvas := RSCanvas new.
@@ -253,14 +268,14 @@ RSeGFService >> buildInvocationGraphCanvas [
 	labeled := RSLabeled new.
 	labeled highlightable.
 
-	shapes  := ssShapes associations collect: [ :assoc | 
-		| method |
-		method := assoc key.
-		(self buildMethodBox: method) ].
+	shapes := ssShapes associations collect: [ :assoc | 
+		          | method |
+		          method := assoc key.
+		          self buildMethodBox: method ].
 
 
 	shapes := self applyFiltersOn: shapes.
-
+	allMethods addAll: shapes.
 
 
 	"add a starting indicator as node in the canvas, linked to the entry point"
@@ -317,8 +332,13 @@ canvas @ stepping."
 { #category : #'as yet unclassified' }
 RSeGFService >> buildMethodBox: method [
 
-	| srcCode shape |
+	| srcCode shape high arrow |
+	arrow := RSShapeFactory arrowedLine
+		         withBorderAttachPoint;
+		         color: Color blue.
 	srcCode := method sourceText.
+
+	high := RSHighlightable new.
 
 	shape := RSBox new
 		         model: method;
@@ -329,7 +349,33 @@ RSeGFService >> buildMethodBox: method [
 		         border: (RSBorder new color: 'black');
 		         color: Color blue translucent.
 	shape when: RSMouseClick do: [ :evt | " 1 halt." ] for: self.
-	shape @ RSHighlightable.
+	shape @ high.
+
+
+	high
+		when: RSHighlightEvent do: [ :evt | 
+			| methods arrows |
+
+			methods := eGFInvocationModel methods at: method.
+
+			arrows := (methods collect: [ :met | 
+					           | toMet |
+					           toMet := allMethods shapeFromModel: met.
+					           toMet isNotNil
+						           ifTrue: [ 
+							           arrow copy
+								           from: evt shape;
+								           to: toMet ]
+						           ifFalse: [ nil ] ]) select: [ :obj | obj isNotNil ].
+			canvas addAll: arrows.
+			canvas propertyAt: #arrows put: arrows ]
+		for: self;
+		when: RSUnHighlightEvent
+		do: [ :evt | 
+		(canvas propertyAt: #arrows ifAbsent: [ #(  ) ]) do: #remove ]
+		for: self.
+
+
 	^ shape
 ]
 
@@ -455,6 +501,20 @@ RSeGFService >> filterShapes: shapes with: aBlock [
 ]
 
 { #category : #filtering }
+RSeGFService >> filterShapesOnExecutingSQL [
+
+	"return a filtering block to excludes shapes associated with a methods model that begins with get/set"
+
+	^ [ :elmt | 
+	  | method |
+	  method := elmt model.
+
+	  self
+		  hasSubString: method sourceText
+		  containing: { 'sqlstatement'. 'executequery'. 'executeupdate' } ]
+]
+
+{ #category : #filtering }
 RSeGFService >> filterShapesOnGettterSetter [
 
 	"return a filtering block to excludes shapes associated with a methods model that begins with get/set"
@@ -510,7 +570,7 @@ RSeGFService >> hasSubString: txt containing: keywords [
 
 	| res |
 	res := keywords select: [ :word | 
-		       (txt capitalized findString: word capitalized) > 0 ].
+		       (txt asLowercase  findString: word asLowercase) > 0 ].
 
 	^ res isNotEmpty
 ]
