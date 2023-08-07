@@ -355,7 +355,6 @@ RSeGFService >> buildMethodBox: method [
 	high
 		when: RSHighlightEvent do: [ :evt | 
 			| methods arrows |
-
 			methods := eGFInvocationModel methods at: method.
 
 			arrows := (methods collect: [ :met | 
@@ -366,7 +365,7 @@ RSeGFService >> buildMethodBox: method [
 							           arrow copy
 								           from: evt shape;
 								           to: toMet ]
-						           ifFalse: [ nil ] ]) select: [ :obj | obj isNotNil ].
+						           ifFalse: [ nil ] ]) reject: #isNil.
 			canvas addAll: arrows.
 			canvas propertyAt: #arrows put: arrows ]
 		for: self;
