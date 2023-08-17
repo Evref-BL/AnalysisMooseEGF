@@ -4,7 +4,8 @@ Class {
 	#instVars : [
 		'eGFInvocationModel',
 		'canvas',
-		'allMethods'
+		'allMethods',
+		'allClasses'
 	],
 	#category : #AnalysisMooseEGF
 }
@@ -99,6 +100,59 @@ RSeGFService >> WIPNewClassDependenciesCanvas [
 	^ canvas
 ]
 
+{ #category : #adding }
+RSeGFService >> addHighlightEffect: aShape [
+
+	| high method arrow |
+	
+	method := aShape model.
+	arrow := RSShapeFactory arrowedLine
+		         withBorderAttachPoint;
+		         color: Color blue.
+	high := RSHighlightable new.
+	aShape @ high.
+	high
+		when: RSHighlightEvent do: [ :evt | 
+			| invocMethods arrows |
+			"get the models, which are the invoked methods by our current method"
+			invocMethods := eGFInvocationModel methods at: method.
+
+			"build and collect each arrow we need to add to the canvas"
+			arrows := (invocMethods collect: [ :fromMet | 
+					           | toMet |
+					           "get the shape that as the model met"
+					           toMet := allMethods shapeFromModel: fromMet.
+					           "because we may filters the shapes, we have to check that the to-shapes really exists"
+					           toMet isNotNil
+						           ifTrue: [ "return an arrow from the shape fromMet (method) to the shape toMet. Because collect: need to return an object, we return nil if the shape does not exist"
+							           arrow copy
+								           from: evt shape;
+								           to: toMet ]
+						           ifFalse: [ nil ] ]) reject: #isNil.
+			canvas addAll: arrows.
+			"we store the arrows reference into a canvas properties"
+			canvas propertyAt: #arrows put: arrows ]
+		for: self;
+		when: RSUnHighlightEvent
+		do: [ :evt | 
+		(canvas propertyAt: #arrows ifAbsent: [ #(  ) ]) do: #remove ]
+		for: self.
+
+	^ aShape
+]
+
+{ #category : #accessing }
+RSeGFService >> allClasses [
+
+	^ allClasses
+]
+
+{ #category : #accessing }
+RSeGFService >> allClasses: anObject [
+
+	allClasses := anObject
+]
+
 { #category : #'as yet unclassified' }
 RSeGFService >> applyFiltersOn: shapes [
 
@@ -118,6 +172,9 @@ RSeGFService >> applyFiltersOn: shapes [
 		do: [ :shp | shp color: Color red ].
 
 
+"	(self filterShapes: shapes with: self filterShapesOnUC) do: [ :shp | 
+		shp color: Color green ]."
+
 
 	"finally, remove methods that are get/set"
 	^ self filterShapes: shapes with: self filterShapesOnGettterSetter
@@ -126,8 +183,9 @@ RSeGFService >> applyFiltersOn: shapes [
 { #category : #'as yet unclassified' }
 RSeGFService >> buildClassDependenciesCanvas [
 
-	| ssShapes ssClassDep shapes |
+	| ssShapes ssClassDep shapes layer |
 	allMethods := RSGroup new.
+	allClasses := RSGroup new.
 
 	ssShapes := eGFInvocationModel classGroup copy.
 	ssClassDep := eGFInvocationModel classDependencies copy.
@@ -137,7 +195,7 @@ RSeGFService >> buildClassDependenciesCanvas [
 
 	"canvas showEncompassingRectangles."
 	shapes := ssShapes associations collect: [ :assoc | 
-		          | group label composite methods |
+		          | group label composite methods class |
 		          group := RSGroup new.
 
 		          methods := assoc value collect: [ :met | 
@@ -145,7 +203,7 @@ RSeGFService >> buildClassDependenciesCanvas [
 
 		          methods := self applyFiltersOn: methods.
 
-		         	allMethods addAll: methods. 
+		          allMethods addAll: methods.
 
 		          RSGridLayout on: methods.
 		          "composite that regroup methods of an Class"
@@ -163,24 +221,54 @@ RSeGFService >> buildClassDependenciesCanvas [
 			          add: label;
 			          add: composite.
 		          RSVerticalLineLayout new alignCenter on: group.
-		          RSComposite new
-			          shapes: group;
-			          model: assoc key;
-			          draggable;
-			          popup;
-			          yourself ].
-
+		          class := RSComposite new
+			                   shapes: group;
+			                   model: assoc key;
+			                   draggable;
+			                   popup;
+			                   yourself.
+		          allClasses add: class.
+		          class ].
 
 	canvas addAll: shapes.
-	
+
 	RSLineBuilder arrowedLine
 		withBorderAttachPoint;
 		canvas: canvas;
 		beDirectional;
 		connectToAll: [ :class | (ssClassDep at: class) asOrderedCollection ].
 
+
+	"LAYERS"
+
+
+	"		layer := RSGroup new
+		         addAll:
+			         (self
+				          filterShapes: allClasses
+				          with: self filterShapesOnUCLayer);
+		         add: (RSLabel new text: 'Layer UC');
+		         yourself.
+	RSHorizontalLineLayout new alignMiddle on: layer.
+	canvas add: (RSComposite new
+			 color: (Color green alpha: 0.4);
+			 shapes: layer;
+			 yourself)."
+
+	(self filterShapes: allClasses with: self filterShapesOnUCLayer) do: [ 
+		:shp | shp color: Color green ].
+
+	(self filterShapes: allClasses with: self filterShapesOnServiceLayer) 
+		do: [ :shp | shp color: Color yellow ].
+
+	(self filterShapes: allClasses with: self filterShapesOnDAOLayer) 
+		do: [ :shp | shp color: Color orange ].
+
+
+
+
 	canvas edges pushBack.
-	RSHorizontalTreeLayout on: shapes.
+	"RSHorizontalTreeLayout on: shapes."
 	"canvas @ RSForceLayoutSteppingInteraction."
 	"stepping := RSForceLayoutSteppingInteraction new.
 	stepping layout
@@ -188,9 +276,9 @@ RSeGFService >> buildClassDependenciesCanvas [
 		charge: -10000.
 canvas @ stepping."
 
-	"	RSForceBasedLayout new
-		charge: -800;
-		on: canvas nodes."
+	RSForceBasedLayout new
+		charge: -12000;
+		on: canvas nodes.
 
 
 	canvas @ RSCanvasController.
@@ -332,13 +420,9 @@ canvas @ stepping."
 { #category : #'as yet unclassified' }
 RSeGFService >> buildMethodBox: method [
 
-	| srcCode shape high arrow |
-	arrow := RSShapeFactory arrowedLine
-		         withBorderAttachPoint;
-		         color: Color blue.
+	| srcCode shape  |
 	srcCode := method sourceText.
 
-	high := RSHighlightable new.
 
 	shape := RSBox new
 		         model: method;
@@ -349,31 +433,9 @@ RSeGFService >> buildMethodBox: method [
 		         border: (RSBorder new color: 'black');
 		         color: Color blue translucent.
 	shape when: RSMouseClick do: [ :evt | " 1 halt." ] for: self.
-	shape @ high.
 
 
-	high
-		when: RSHighlightEvent do: [ :evt | 
-			| methods arrows |
-			methods := eGFInvocationModel methods at: method.
-
-			arrows := (methods collect: [ :met | 
-					           | toMet |
-					           toMet := allMethods shapeFromModel: met.
-					           toMet isNotNil
-						           ifTrue: [ 
-							           arrow copy
-								           from: evt shape;
-								           to: toMet ]
-						           ifFalse: [ nil ] ]) reject: #isNil.
-			canvas addAll: arrows.
-			canvas propertyAt: #arrows put: arrows ]
-		for: self;
-		when: RSUnHighlightEvent
-		do: [ :evt | 
-		(canvas propertyAt: #arrows ifAbsent: [ #(  ) ]) do: #remove ]
-		for: self.
-
+	self addHighlightEffect: shape.
 
 	^ shape
 ]
@@ -500,6 +562,18 @@ RSeGFService >> filterShapes: shapes with: aBlock [
 ]
 
 { #category : #filtering }
+RSeGFService >> filterShapesOnDAOLayer [
+
+	"return a filtering block to excludes shapes associated with a methods model that begins with get/set"
+
+	^ [ :elmt | 
+	  | class |
+	  class := elmt model.
+	  (class superclassHierarchy select: [ :sc | sc name = #DaoAbstract ])
+		  isNotEmpty ]
+]
+
+{ #category : #filtering }
 RSeGFService >> filterShapesOnExecutingSQL [
 
 	"return a filtering block to excludes shapes associated with a methods model that begins with get/set"
@@ -547,6 +621,30 @@ RSeGFService >> filterShapesOnReferencingSQL [
 	  method := elmt model.
 	 self hasSubString: method sourceText containing: self sqlKeywords.
 	]
+]
+
+{ #category : #filtering }
+RSeGFService >> filterShapesOnServiceLayer [
+
+	"return a filtering block to excludes shapes associated with a methods model that begins with get/set"
+
+	^ [ :elmt | 
+	  | class |
+	  class := elmt model.
+	  (class superclassHierarchy select: [ :sc | sc name = #ServiceAbstract ])
+		  isNotEmpty ]
+]
+
+{ #category : #filtering }
+RSeGFService >> filterShapesOnUCLayer [
+
+	"return a filtering block to excludes shapes associated with a methods model that begins with get/set"
+
+	^ [ :elmt | 
+	  | class |
+	  class := elmt model.
+	  (class superclassHierarchy select: [ :sc | sc name = #RemoteServer ])
+		  isNotEmpty ]
 ]
 
 { #category : #testing }
