@@ -21,6 +21,40 @@ EGFInvocationModel class >> newFrom: invocationGraph [
 	^ invocModel
 ]
 
+{ #category : #'as yet unclassified' }
+EGFInvocationModel >> allFullClassNames [
+
+	^ ((self classGroup keys collect: [ :c | 
+		    | name |
+		    name := c mooseNameWithDots.
+			name replaceAllRegex: '\$' with: '.' .
+		    
+		name ]) reject: [ :s | (s beginsWith: 'fr.') not ]) asSet
+		  asOrderedCollection
+]
+
+{ #category : #'as yet unclassified' }
+EGFInvocationModel >> allFullClassNamesForJava [
+
+	^ self printStringAsJavaParms: self allFullClassNames 
+]
+
+{ #category : #'as yet unclassified' }
+EGFInvocationModel >> allPackageNames [
+
+	^ (((self classGroup keys collect: [ :c | 
+		    | name |
+		    name := c mooseNameWithDots.
+		    name := name copyFrom: 1 to: (name lastIndexOf: $.) - 1.
+		    name ]) reject: [ :s | (s beginsWith: 'fr.') not ]) asSet) asOrderedCollection 
+]
+
+{ #category : #'as yet unclassified' }
+EGFInvocationModel >> allPackageNamesForJava [
+
+	^ self printStringAsJavaParms: self allPackageNames 
+]
+
 { #category : #accessing }
 EGFInvocationModel >> classDependencies [
 	^ classDependencies
@@ -507,4 +541,33 @@ EGFInvocationModel >> invocationGraph: aCollection [
 EGFInvocationModel >> methods [
 
 	^ self flattenMethods
+]
+
+{ #category : #'as yet unclassified' }
+EGFInvocationModel >> printStringAsJavaParms: aCollectionOfStrings [
+
+	| parms list |
+	parms := ''.
+	list := aCollectionOfStrings.
+	list
+		from: 1
+		to: list size - 1
+		do: [ :s | parms := parms , ' "' , s , '"' , ',' ].
+	parms := parms , ' "' , list last , '"'.
+	^ parms
+]
+
+{ #category : #'as yet unclassified' }
+EGFInvocationModel >> printStringAsJavaParmsMethods: aCollectionOfStrings [
+
+	| parms list |
+	parms := 'return '.
+	list := aCollectionOfStrings.
+	parms := parms , 'nameStartsWith("' , list first , '")'.
+	list
+		from: 2
+		to: list size 
+		do: [ :s | parms := parms , '.or(nameStartsWith("' , s , '"))' ].
+	parms := parms , ';'.
+	^ parms
 ]

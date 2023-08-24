@@ -5,7 +5,8 @@ Class {
 		'eGFInvocationModel',
 		'canvas',
 		'allMethods',
-		'allClasses'
+		'allClasses',
+		'serviceTrace'
 	],
 	#category : #AnalysisMooseEGF
 }
@@ -172,18 +173,19 @@ RSeGFService >> applyFiltersOn: shapes [
 		do: [ :shp | shp color: Color red ].
 
 
-"	(self filterShapes: shapes with: self filterShapesOnUC) do: [ :shp | 
+	"	(self filterShapes: shapes with: self filterShapesOnUC) do: [ :shp | 
 		shp color: Color green ]."
 
 
 	"finally, remove methods that are get/set"
-	^ self filterShapes: shapes with: self filterShapesOnGettterSetter
+	"^ self filterShapes: shapes with: self filterShapesOnGettterSetter"
+	^ shapes
 ]
 
 { #category : #'as yet unclassified' }
 RSeGFService >> buildClassDependenciesCanvas [
 
-	| ssShapes ssClassDep shapes layer |
+	| ssShapes ssClassDep shapes layout stepping |
 	allMethods := RSGroup new.
 	allClasses := RSGroup new.
 
@@ -232,11 +234,20 @@ RSeGFService >> buildClassDependenciesCanvas [
 
 	canvas addAll: shapes.
 
-	RSLineBuilder arrowedLine
-		withBorderAttachPoint;
-		canvas: canvas;
-		beDirectional;
-		connectToAll: [ :class | (ssClassDep at: class) asOrderedCollection ].
+
+
+
+	self drawTraceEdgeFrom: serviceTrace.
+
+
+	(RSLineBuilder arrowedLine
+		 withBorderAttachPoint;
+		 color: (Color gray alpha: 0.2);
+		 canvas: canvas;
+		 beDirectional;
+		 connectToAll: [ :class | 
+			 (ssClassDep at: class) asOrderedCollection ]) pushBack.
+
 
 
 	"LAYERS"
@@ -267,18 +278,24 @@ RSeGFService >> buildClassDependenciesCanvas [
 
 
 
-	canvas edges pushBack.
 	"RSHorizontalTreeLayout on: shapes."
-	"canvas @ RSForceLayoutSteppingInteraction."
-	"stepping := RSForceLayoutSteppingInteraction new.
-	stepping layout
-		length: 80;
-		charge: -10000.
-canvas @ stepping."
 
+
+	"RSClusterTreeLayout on: shapes."
+
+	"	stepping := RSForceLayoutSteppingInteraction new.
+	stepping layout
+		length: 150;
+		charge: -10000.
+	canvas @ stepping.
+"
 	RSForceBasedLayout new
-		charge: -12000;
+		length: 300;
+		charge: -10500;
+		nodes: canvas nodes;
+		edges: canvas edges;
 		on: canvas nodes.
+
 
 
 	canvas @ RSCanvasController.
@@ -440,6 +457,32 @@ RSeGFService >> buildMethodBox: method [
 	^ shape
 ]
 
+{ #category : #accessing }
+RSeGFService >> canvas [
+
+	^ canvas
+]
+
+{ #category : #'as yet unclassified' }
+RSeGFService >> collectClassShapeFromTrace: aTraceAsOrderedCollection [
+
+	| prunedTrace trace |
+	
+	
+	trace := OrderedCollection new.
+
+	prunedTrace := aTraceAsOrderedCollection collect: [ :t | 
+		               t copyFrom: 1 to: (t lastIndexOf: $.) - 1 ].
+
+	allClasses do: [ :shape | 
+		| model |
+		model := shape model.
+
+		prunedTrace do: [ :t | 
+			((model mooseNameWithDots asLowercase findString: t asLowercase) > 0) ifTrue: [
+				trace add: t -> shape ] ] ]
+]
+
 { #category : #'as yet unclassified' }
 RSeGFService >> createLegend: aStringArray [
 
@@ -546,9 +589,66 @@ canvas @ stepping."
 	^ canvas
 ]
 
+{ #category : #'as yet unclassified' }
+RSeGFService >> drawTraceEdgeFrom: aTraceAsOrderedCollection [
+
+	| trace traceModel |
+	trace := aTraceAsOrderedCollection collect: [ :moosename | 
+		         self findShapeIn: allMethods FromMoosename: moosename ].
+
+	traceModel := trace collect: [ :s | s model ].
+
+
+	(RSLineBuilder arrowedLine
+		borderColor: Color red;
+		withBorderAttachPoint;
+		beDirectional;
+		width: 5;
+		shapes: trace;
+		canvas: canvas;
+		connectToAll: [ :m | 
+			| index res |
+			res := Set new.
+			index := traceModel indexOf: m.
+			index > 1
+				ifTrue: [ res add: (traceModel at: index - 1) ]
+				ifFalse: [ res := Set new ].
+
+			res ]) pushFront.
+]
+
+{ #category : #'as yet unclassified' }
+RSeGFService >> drawV2TraceEdgeFrom: aTraceAsOrderedCollection [
+
+	| trace traceModel innerTrace |
+	trace := aTraceAsOrderedCollection collect: [ :moosename | 
+		         self findShapeIn: allMethods FromMoosename: moosename ].
+
+	traceModel := trace collect: [ :s | s model ].
+
+	"innerTrace := trace select: [ :m | 
+		              (m = trace first or: [ m = trace last ]) not ]."
+	1 halt.
+	innerTrace := trace select: [ :m | (m = (trace at: (trace size / 2 )))].
+
+	MyRSMultiBezierEdgeBuilder multiBezier
+		borderColor: Color red;
+		shapes: trace;
+		width: 20;
+		canvas: canvas;
+		tension: 1.0;
+		following: [ :m | innerTrace ];
+		useAssociation: traceModel last -> traceModel first
+]
+
 { #category : #testing }
 RSeGFService >> eGFInvocationModel: anEGFInvocationModel [
 	eGFInvocationModel := anEGFInvocationModel.
+]
+
+{ #category : #setter }
+RSeGFService >> executionTrace: aCollection [ 
+	self shouldBeImplemented.
 ]
 
 { #category : #filtering }
@@ -647,6 +747,17 @@ RSeGFService >> filterShapesOnUCLayer [
 		  isNotEmpty ]
 ]
 
+{ #category : #'as yet unclassified' }
+RSeGFService >> findShapeIn: aCollection FromMoosename: aMooseName [
+
+	^ (aCollection select: [ :shape | 
+		|regex|
+		
+			
+		aMooseName endsWith: shape model mooseNameWithDotsNoParenthesisNoPackageName
+		 ]) anyOne
+]
+
 { #category : #testing }
 RSeGFService >> hasForeignSenders: aMethod [
 
@@ -670,6 +781,30 @@ RSeGFService >> hasSubString: txt containing: keywords [
 		       (txt asLowercase  findString: word asLowercase) > 0 ].
 
 	^ res isNotEmpty
+]
+
+{ #category : #filtering }
+RSeGFService >> highlightClassesOfTrace: aTraceAsOrderedCollect [
+
+
+	self collectClassShapeFromTrace: aTraceAsOrderedCollect.
+
+	allClasses do: [ :shape | 
+		| model isIn trace |
+		model := shape model.
+
+		"self haltIf: [ model name = 'SqlPreparedStatement' ]."
+
+		trace := aTraceAsOrderedCollect collect: [ :t | 
+			         t copyFrom: 1 to: (t lastIndexOf: $.) - 1 ].
+
+		isIn := self hasSubString: model mooseNameWithDots containing: trace.
+		isIn ifTrue: [ shape color: Color purple translucent ] ]
+]
+
+{ #category : #setter }
+RSeGFService >> serviceTrace: aCollection [ 
+	serviceTrace := aCollection
 ]
 
 { #category : #'as yet unclassified' }
