@@ -67,12 +67,31 @@ EGFEvolAnalysis >> OldComputeInvocationGraphOfUc: ucName andMethods: mthName wit
 	^ res
 ]
 
+{ #category : #'as yet unclassified' }
+EGFEvolAnalysis >> allInvockedMethodsOf: aMethod [
+	
+
+
+	^ (aMethod queryAllOutgoing select: #isInvocation)
+		  asOrderedCollection select: [ :invocation | 
+		  | methodInvoc |
+		  "select any candidate method that could be the receiver candidat of m"
+		  methodInvoc := invocation candidates anyOne.
+
+		  "if the invoked method is not a stub"
+		  methodInvoc isStub = false ]
+]
+
 { #category : #script }
 EGFEvolAnalysis >> analysis [
 
 	<script>
-	
 	| evol ucs seen res block meth |
+	self
+		deprecated: 'Use #nothing instead'
+		on: '27 July 2023'
+		in:
+		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
 	evol := MooseModel root at: 1.
 	ucs := evol allClasses select: [ :c | 
 		       (c name beginsWith: 'uc' caseSensitive: false) and: [ 
@@ -109,6 +128,12 @@ EGFEvolAnalysis >> computeInvocationGraphOfUc: ucName andMethodName: mthName wit
 
 	<script>
 	| evol ucs visitedMethods res block meth |
+	self
+		deprecated:
+		'Use #newComputeInvocationGraphOfUc:andMethodName:withCache: instead'
+		on: '27 July 2023'
+		in:
+		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
 	evol := MooseModel root at: 1.
 	"get all class that is an UCs in eGF"
 	ucs := evol allClasses select: [ :c | 
@@ -120,24 +145,23 @@ EGFEvolAnalysis >> computeInvocationGraphOfUc: ucName andMethodName: mthName wit
 
 	"recursive visiting block"
 	block := [ :method :outgoing | "look throught all outgoing entities of m and search the invocation m makes"
-	         method queryAllOutgoing
-		         select: #isInvocation
-		         thenDo: [ :invocation | 
-			         | methodInvoc |
-			         "select any candidate method that could be the receiver candidat of m"
-			         methodInvoc := invocation candidates anyOne.
+	         (method queryAllOutgoing select: #isInvocation)
+		         asOrderedCollection do: [ :invocation | 
+		         | methodInvoc |
+		         "select any candidate method that could be the receiver candidat of m"
+		         methodInvoc := invocation candidates anyOne.
 
-			         "if the invoked method is not a stub"
-			         methodInvoc isStub ifFalse: [ "check if this methodInvoc not stub as already been seen"
-				         visitedMethods
-					         at: methodInvoc
-					         ifPresent: [ :out | outgoing at: methodInvoc put: out ]
-					         ifAbsent: [ 
-						         | recurOut |
-						         recurOut := Dictionary new.
-						         outgoing at: methodInvoc put: recurOut.
-						         visitedMethods at: methodInvoc put: recurOut.
-						         block value: methodInvoc value: recurOut ] ] ].
+		         "if the invoked method is not a stub"
+		         methodInvoc isStub ifFalse: [ "check if this methodInvoc not stub as already been seen"
+			         visitedMethods
+				         at: methodInvoc
+				         ifPresent: [ :out | outgoing at: methodInvoc put: out ]
+				         ifAbsent: [ 
+					         | recurOut |
+					         recurOut := Dictionary new.
+					         outgoing at: methodInvoc put: recurOut.
+					         visitedMethods at: methodInvoc put: recurOut.
+					         block value: methodInvoc value: recurOut ] ] ].
 	         outgoing ].
 
 	"get methods of the UC named from parameters that are named named also from parameters"
@@ -148,12 +172,14 @@ EGFEvolAnalysis >> computeInvocationGraphOfUc: ucName andMethodName: mthName wit
 	"recursivly explore the methods invocations graph"
 	res at: meth put: (block value: meth value: Dictionary new).
 
-	
+
 
 	withCache ifTrue: [ 
 		invocationGraphCache at: ucName , mthName put: res.
 
-		methodInvokedCache at: ucName , mthName put: (self flattenInvocationGraph: res) ].
+		methodInvokedCache
+			at: ucName , mthName
+			put: (self flattenInvocationGraph: res) ].
 
 	^ self
 ]
@@ -164,6 +190,12 @@ EGFEvolAnalysis >> createEGFModelFromUCName: UCname andMethodName: methodName [
 	"create a instance of eGFModelInvocation"
 
 	| model invocGraph methodSet |
+	self
+		deprecated:
+		'Use #newCreateEGFModelFromUCName:andMethodName: instead'
+		on: '27 July 2023'
+		in:
+		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
 	model := EGFInvocationModel new.
 
 	invocationGraphCache at: UCname , methodName ifAbsent: [ 
@@ -185,6 +217,11 @@ EGFEvolAnalysis >> flattenInvocationGraph: invocationGraph [
 	"retrieve the invocation methods graph as a flatten dictionary"
 
 	| recBlock seen entryPoint |
+	self
+		deprecated: 'Use #retrieveInvocationGraphFromMethod: instead'
+		on: '27 July 2023'
+		in:
+		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
 	seen := Dictionary new.
 
 	entryPoint := invocationGraph keys first.
@@ -213,6 +250,11 @@ EGFEvolAnalysis >> flattenInvocationGraph: invocationGraph [
 
 
 
+	"	seen associations do: [ :assoc | 
+		self haltIf: [ assoc value size > 3]. 
+		assoc value sort: [ :meth1 :meth2 | 
+			meth1 sourceAnchor endPos  < meth2 sourceAnchor endPos  ] ]."
+
 	^ seen
 ]
 
@@ -226,14 +268,20 @@ EGFEvolAnalysis >> initialize [
 { #category : #script }
 EGFEvolAnalysis >> invocationGraphOfUc: ucName andMethodName: mthName [
 
+	self
+		deprecated: 'Use #nothing instead'
+		on: '27 July 2023'
+		in:
+		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
+
 	invocationGraphCache
 		at: ucName , mthName
 		ifPresent: [ invocationGraphCache at: ucName , mthName ]
 		ifAbsent: [ 
-			 self
-				  computeInvocationGraphOfUc: ucName
-				  andMethodName: mthName
-				  withCache: true ]
+			self
+				computeInvocationGraphOfUc: ucName
+				andMethodName: mthName
+				withCache: true ]
 ]
 
 { #category : #script }
@@ -241,12 +289,19 @@ EGFEvolAnalysis >> invocationGraphOfUcTiersComptableImplWithFournirListeTiersCom
 
 	<script>
 	| evol ucs seen res block meth |
+	self
+		deprecated: 'Use #nothing instead'
+		on: '27 July 2023'
+		in:
+		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
 	evol := MooseModel root at: 1.
 	ucs := evol allClasses select: [ :c | 
 		       (c name beginsWith: 'uc' caseSensitive: false) and: [ 
 			       c name endsWith: 'impl' caseSensitive: false ] ].
 	seen := Dictionary new.
 	res := Dictionary new.
+
+	"block de recursion pour parcourir le model"
 	block := [ :m :outgoing | 
 	         m queryAllOutgoing select: #isInvocation thenDo: [ :i | 
 		         | method |
@@ -262,6 +317,8 @@ EGFEvolAnalysis >> invocationGraphOfUcTiersComptableImplWithFournirListeTiersCom
 					         seen at: method put: recurOut.
 					         block value: method value: recurOut ] ] ].
 	         outgoing ].
+
+
 	meth := (ucs detect: [ :uc | uc name = 'UcTiersComptableImpl' ])
 		        methods detect: [ :m | 
 		        m name = 'fournirListeTiersComptablesIHM' ].
@@ -269,8 +326,150 @@ EGFEvolAnalysis >> invocationGraphOfUcTiersComptableImplWithFournirListeTiersCom
 	^ res
 ]
 
+{ #category : #testing }
+EGFEvolAnalysis >> isThrowingRemoteException: aFamixMethod [
+
+	| execeptions |
+	execeptions := aFamixMethod declaredExceptions select: [ :exec | 
+		               exec name = #RemoteException ].
+	^ execeptions isNotEmpty 
+]
+
+{ #category : #script }
+EGFEvolAnalysis >> newComputeInvocationGraphOfUc: ucName andMethodName: mthName withCache: withCache [
+
+	"ucName := 'UcTiersComptableImpl'.
+	mthName := 'fournirListeTiersComptablesIHM'."
+
+	<script>
+	| evol ucs  res meth |
+	evol := MooseModel root at: 1.
+	"get all class that is an UCs in eGF"
+	ucs := evol allClasses select: [ :c | 
+		       (c name beginsWith: 'uc' caseSensitive: false) and: [ 
+			       c name endsWith: 'impl' caseSensitive: false ] ].
+
+	res := Dictionary new.
+
+
+	"get methods of the UC named from parameters that are named named also from parameters"
+	meth := (ucs detect: [ :uc | uc name = ucName ]) methods detect: [ :m | 
+		        m name = mthName ].
+
+	res := self retrieveInvocationGraphFromMethod: meth.
+
+	withCache ifTrue: [ 
+		methodInvokedCache at: ucName , mthName put: meth -> res ].
+
+	^ self
+]
+
+{ #category : #'as yet unclassified' }
+EGFEvolAnalysis >> newCreateEGFModelFromUCName: UCname andMethodName: methodName [
+
+	"create a instance of eGFModelInvocation"
+
+	| model methodSet entryPoint|
+	model := EGFInvocationModel new.
+
+	methodInvokedCache at: UCname , methodName ifAbsent: [ 
+		self
+			newComputeInvocationGraphOfUc: UCname
+			andMethodName: methodName
+			withCache: true ].
+
+	methodSet := (methodInvokedCache at: UCname , methodName) value.
+	entryPoint := (methodInvokedCache at: UCname , methodName) key.
+
+	model initFromMethods: methodSet andAnEntryPoint: entryPoint.
+	^ model
+]
+
+{ #category : #'as yet unclassified' }
+EGFEvolAnalysis >> orderByPositionAMethodInvocations: aMethod [
+
+	| invocations positions |
+	
+
+	"self allInvockedMethodsOf: aMethod "
+	
+	positions := (self allInvockedMethodsOf: aMethod )
+		             collect: [ :invoc | 
+			             | mth endpos |
+			             mth := invoc candidates anyOne.
+			             endpos := invoc sourceAnchor endPos.
+			             mth -> endpos ].
+	invocations := Dictionary new.
+	positions do: [ :assoc | 
+		invocations
+			at: assoc key
+			ifPresent: [ :oldVal | 
+				oldVal > assoc value ifTrue: [ 
+					invocations at: assoc key put: assoc value ] ]
+			ifAbsent: [ invocations at: assoc key put: assoc value ] ].
+
+	^ (invocations associations sort: [ :a1 :a2 | a1 value < a2 value ]) 
+		  collect: [ :e | e key ]
+]
+
 { #category : #initialization }
 EGFEvolAnalysis >> resetCache [
 
 	invocationGraphCache := Dictionary new
+]
+
+{ #category : #'as yet unclassified' }
+EGFEvolAnalysis >> retrieveAllServiceEndPoint [
+
+	| endpoints |
+	endpoints := OrderedCollection new.
+
+	self searchForUCs do: [ :ucClass | 
+		| methods |
+		methods := ucClass methods.
+		((methods select: [ :m | self isThrowingRemoteException: m ]) 
+			 reject: [ :m | m isConstructor ]) do: [ :m | 
+			endpoints add: ucClass -> m ] ].
+
+	^ endpoints
+]
+
+{ #category : #'instance creation' }
+EGFEvolAnalysis >> retrieveInvocationGraphFromMethod: aMethod [
+
+	"retrieve the invocation methods graph as a flatten dictionary"
+
+	| recBlock seen |
+	seen := Dictionary new.
+
+
+	recBlock := [ :method | "explore next invocation"
+	            seen at: method ifAbsent: [ 
+		            seen
+			            at: method
+			            put: (self orderByPositionAMethodInvocations: method).
+		            (seen at: method) do: [ :child | recBlock value: child ] ] ].
+
+
+
+	recBlock value: aMethod.
+
+
+	^ seen
+]
+
+{ #category : #'as yet unclassified' }
+EGFEvolAnalysis >> searchForUCs [
+
+	"ucName := 'UcTiersComptableImpl'.
+	mthName := 'fournirListeTiersComptablesIHM'."
+
+	| evol ucs |
+	evol := MooseModel root at: 1.
+	"get all class that is an UCs in eGF"
+	ucs := evol allClasses select: [ :c | 
+		       (c name beginsWith: 'uc' caseSensitive: false) and: [ 
+			       c name endsWith: 'impl' caseSensitive: false ] ].
+
+	^ ucs
 ]
