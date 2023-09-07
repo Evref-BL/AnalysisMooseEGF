@@ -16,11 +16,24 @@ Class {
 	#name : #EGFEvolAnalysis,
 	#superclass : #Object,
 	#instVars : [
-		'invocationGraphCache',
-		'methodInvokedCache'
+		'modelCache',
+		'callflowCache'
 	],
 	#category : #AnalysisMooseEGF
 }
+
+{ #category : #'as yet unclassified' }
+EGFEvolAnalysis class >> loadAllUcImpl [
+
+	| egf ucs |
+	egf := self new.
+	ucs := egf retrieveAllServiceEndPoint reject: [ :assoc | 
+		       assoc value name = 'create' ].
+	ucs do: [ :assoc | "stock results in cache"
+		egf
+			callFlowModelFromUCName: assoc key name
+			andMethodName: assoc value name ]
+]
 
 { #category : #script }
 EGFEvolAnalysis >> OldComputeInvocationGraphOfUc: ucName andMethods: mthName withCache: withCache [
@@ -62,7 +75,7 @@ EGFEvolAnalysis >> OldComputeInvocationGraphOfUc: ucName andMethods: mthName wit
 	res at: meth put: (block value: meth value: Dictionary new).
 
 	withCache ifTrue: [ 
-		invocationGraphCache at: ucName , mthName put: res ].
+		modelCache at: ucName , mthName put: res ].
 
 	^ res
 ]
@@ -120,6 +133,56 @@ EGFEvolAnalysis >> analysis [
 	^ res
 ]
 
+{ #category : #'as yet unclassified' }
+EGFEvolAnalysis >> callFlowModelFromUCName: UCname andMethodName: methodName [
+
+	"create a instance of eGFModelInvocation"
+
+	| model methodSet entryPoint |
+	callflowCache at: UCname , methodName ifAbsent: [ 
+		self
+			computeCallFlowOfUc: UCname
+			andMethodName: methodName
+			withCache: true ].
+
+	methodSet := (callflowCache at: UCname , methodName) value.
+	entryPoint := (callflowCache at: UCname , methodName) key.
+
+
+	^ modelCache at: UCname , methodName ifAbsentPut: [ 
+		  model := EGFCallflowModel new.
+		  model initFromMethods: methodSet andAnEntryPoint: entryPoint ]
+]
+
+{ #category : #script }
+EGFEvolAnalysis >> computeCallFlowOfUc: ucName andMethodName: mthName withCache: withCache [
+
+	"ucName := 'UcTiersComptableImpl'.
+	mthName := 'fournirListeTiersComptablesIHM'."
+
+	<script>
+	| evol ucs  res meth |
+	evol := MooseModel root at: 1.
+	"get all class that is an UCs in eGF"
+	ucs := evol allClasses select: [ :c | 
+		       (c name beginsWith: 'uc' caseSensitive: false) and: [ 
+			       c name endsWith: 'impl' caseSensitive: false ] ].
+
+	res := Dictionary new.
+
+
+	"get methods of the UC named from parameters that are named named also from parameters"
+	meth := (ucs detect: [ :uc | uc name = ucName ]) methods detect: [ :m | 
+		        m name = mthName ].
+
+	res := self retrieveInvocationGraphFromMethod: meth.
+
+	withCache ifTrue: [ 
+		callflowCache at: ucName , mthName put: meth -> res ].
+
+	^ self
+]
+
 { #category : #script }
 EGFEvolAnalysis >> computeInvocationGraphOfUc: ucName andMethodName: mthName withCache: withCache [
 
@@ -175,9 +238,9 @@ EGFEvolAnalysis >> computeInvocationGraphOfUc: ucName andMethodName: mthName wit
 
 
 	withCache ifTrue: [ 
-		invocationGraphCache at: ucName , mthName put: res.
+		modelCache at: ucName , mthName put: res.
 
-		methodInvokedCache
+		callflowCache
 			at: ucName , mthName
 			put: (self flattenInvocationGraph: res) ].
 
@@ -196,16 +259,16 @@ EGFEvolAnalysis >> createEGFModelFromUCName: UCname andMethodName: methodName [
 		on: '27 July 2023'
 		in:
 		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
-	model := EGFInvocationModel new.
+	model := EGFCallflowModel new.
 
-	invocationGraphCache at: UCname , methodName ifAbsent: [ 
+	modelCache at: UCname , methodName ifAbsent: [ 
 		self
 			computeInvocationGraphOfUc: UCname
 			andMethodName: methodName
 			withCache: true ].
 
-	invocGraph := invocationGraphCache at: UCname , methodName.
-	methodSet := methodInvokedCache at: UCname , methodName.
+	invocGraph := modelCache at: UCname , methodName.
+	methodSet := callflowCache at: UCname , methodName.
 
 	model initFromInvocationGraph: invocGraph andMethod: methodSet.
 	^ model
@@ -261,8 +324,40 @@ EGFEvolAnalysis >> flattenInvocationGraph: invocationGraph [
 { #category : #initialization }
 EGFEvolAnalysis >> initialize [
 
-	invocationGraphCache := Dictionary new.
-	methodInvokedCache := Dictionary new.
+	modelCache := Dictionary new.
+	callflowCache := Dictionary new.
+]
+
+{ #category : #inspector }
+EGFEvolAnalysis >> inspectionEGFvolAnalyzer [
+
+	<inspectorPresentationOrder: 1 title: 'EGFevo Services'>
+	| presenter classNameCompare methodCountSorter|
+	
+	classNameCompare := [ :c1 :c2 | c1 name < c2 name ].
+	methodCountSorter := [ :c1 :c2 | 
+	                     c1 value value size threeWayCompareTo:
+		                     c2 value value size ].
+	
+	presenter := SpTablePresenter new
+		             addColumn: ((SpStringTableColumn
+				               title: 'Endpoints'
+				               evaluated: [ :assoc | assoc value key name ])
+				              width: 30;
+				              yourself);
+		             addColumn: ((SpStringTableColumn
+				              title: 'Methods'
+				              evaluated: [ :assoc | assoc value value size ]) sortFunction: methodCountSorter);
+		             items: callflowCache associations;
+		             beResizable;
+		             yourself.
+	^ presenter
+]
+
+{ #category : #inspector }
+EGFEvolAnalysis >> inspectionEGFvolAnalyzerContext: aContext [
+
+	^ aContext active: callflowCache isNotEmpty.
 ]
 
 { #category : #script }
@@ -274,9 +369,9 @@ EGFEvolAnalysis >> invocationGraphOfUc: ucName andMethodName: mthName [
 		in:
 		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
 
-	invocationGraphCache
+	modelCache
 		at: ucName , mthName
-		ifPresent: [ invocationGraphCache at: ucName , mthName ]
+		ifPresent: [ modelCache at: ucName , mthName ]
 		ifAbsent: [ 
 			self
 				computeInvocationGraphOfUc: ucName
@@ -335,56 +430,6 @@ EGFEvolAnalysis >> isThrowingRemoteException: aFamixMethod [
 	^ execeptions isNotEmpty 
 ]
 
-{ #category : #script }
-EGFEvolAnalysis >> newComputeInvocationGraphOfUc: ucName andMethodName: mthName withCache: withCache [
-
-	"ucName := 'UcTiersComptableImpl'.
-	mthName := 'fournirListeTiersComptablesIHM'."
-
-	<script>
-	| evol ucs  res meth |
-	evol := MooseModel root at: 1.
-	"get all class that is an UCs in eGF"
-	ucs := evol allClasses select: [ :c | 
-		       (c name beginsWith: 'uc' caseSensitive: false) and: [ 
-			       c name endsWith: 'impl' caseSensitive: false ] ].
-
-	res := Dictionary new.
-
-
-	"get methods of the UC named from parameters that are named named also from parameters"
-	meth := (ucs detect: [ :uc | uc name = ucName ]) methods detect: [ :m | 
-		        m name = mthName ].
-
-	res := self retrieveInvocationGraphFromMethod: meth.
-
-	withCache ifTrue: [ 
-		methodInvokedCache at: ucName , mthName put: meth -> res ].
-
-	^ self
-]
-
-{ #category : #'as yet unclassified' }
-EGFEvolAnalysis >> newCreateEGFModelFromUCName: UCname andMethodName: methodName [
-
-	"create a instance of eGFModelInvocation"
-
-	| model methodSet entryPoint|
-	model := EGFInvocationModel new.
-
-	methodInvokedCache at: UCname , methodName ifAbsent: [ 
-		self
-			newComputeInvocationGraphOfUc: UCname
-			andMethodName: methodName
-			withCache: true ].
-
-	methodSet := (methodInvokedCache at: UCname , methodName) value.
-	entryPoint := (methodInvokedCache at: UCname , methodName) key.
-
-	model initFromMethods: methodSet andAnEntryPoint: entryPoint.
-	^ model
-]
-
 { #category : #'as yet unclassified' }
 EGFEvolAnalysis >> orderByPositionAMethodInvocations: aMethod [
 
@@ -415,7 +460,8 @@ EGFEvolAnalysis >> orderByPositionAMethodInvocations: aMethod [
 { #category : #initialization }
 EGFEvolAnalysis >> resetCache [
 
-	invocationGraphCache := Dictionary new
+	modelCache := Dictionary new.
+	callflowCache := Dictionary new. 
 ]
 
 { #category : #'as yet unclassified' }

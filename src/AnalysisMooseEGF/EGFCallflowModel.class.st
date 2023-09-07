@@ -1,5 +1,5 @@
 Class {
-	#name : #EGFInvocationModel,
+	#name : #EGFCallflowModel,
 	#superclass : #Object,
 	#instVars : [
 		'invocationGraph',
@@ -12,32 +12,32 @@ Class {
 }
 
 { #category : #'instance creation' }
-EGFInvocationModel class >> newFrom: invocationGraph [
+EGFCallflowModel class >> newFrom: invocationGraph [
 
 	| invocModel |
-	invocModel := EGFInvocationModel new.
+	invocModel := EGFCallflowModel new.
 	 invocModel initFrom:
 		              invocationGraph.
 	^ invocModel
 ]
 
 { #category : #accessing }
-EGFInvocationModel >> classDependencies [
+EGFCallflowModel >> classDependencies [
 	^ classDependencies
 ]
 
 { #category : #setter }
-EGFInvocationModel >> classDependencies: aCollection [ 
+EGFCallflowModel >> classDependencies: aCollection [ 
 	classDependencies := aCollection
 ]
 
 { #category : #accessing }
-EGFInvocationModel >> classGroup [
+EGFCallflowModel >> classGroup [
 	^ classGroup
 ]
 
 { #category : #setter }
-EGFInvocationModel >> classGroup: aCollection [
+EGFCallflowModel >> classGroup: aCollection [
 
 	classGroup := aCollection.
 	"aCollection keys do: [ :key | 
@@ -46,7 +46,7 @@ EGFInvocationModel >> classGroup: aCollection [
 ]
 
 { #category : #compute }
-EGFInvocationModel >> computeClassDependencies [
+EGFCallflowModel >> computeClassDependencies [
 
 	"from a invocationGraph based on the methods, outputs the class dependencies of these methods. 
 	from A,B two classes and mA, mB two methods,
@@ -89,7 +89,7 @@ EGFInvocationModel >> computeClassDependencies [
 ]
 
 { #category : #compute }
-EGFInvocationModel >> computeClassDependenciesFrom: graph [
+EGFCallflowModel >> computeClassDependenciesFrom: graph [
 
 	"from a invocationGraph based on the methods, outputs the class dependencies of these methods. 
 	from A,B two classes and mA, mB two methods,
@@ -132,7 +132,7 @@ EGFInvocationModel >> computeClassDependenciesFrom: graph [
 ]
 
 { #category : #compute }
-EGFInvocationModel >> computeClassDependenciesV2From: methods [
+EGFCallflowModel >> computeClassDependenciesV2From: methods [
 
 	"from a invocationGraph based on the methods, outputs the class dependencies of these methods. 
 	from A,B two classes and mA, mB two methods,
@@ -161,7 +161,7 @@ EGFInvocationModel >> computeClassDependenciesV2From: methods [
 ]
 
 { #category : #compute }
-EGFInvocationModel >> computeClassGroup [
+EGFCallflowModel >> computeClassGroup [
 
 	| recBlock seen seenClasses |
 	self
@@ -197,7 +197,7 @@ EGFInvocationModel >> computeClassGroup [
 ]
 
 { #category : #compute }
-EGFInvocationModel >> computeClassGroupFrom: graph [
+EGFCallflowModel >> computeClassGroupFrom: graph [
 
 	| recBlock seen seenClasses |
 	self
@@ -232,7 +232,7 @@ EGFInvocationModel >> computeClassGroupFrom: graph [
 ]
 
 { #category : #compute }
-EGFInvocationModel >> computeClassGroupV2From: methods [
+EGFCallflowModel >> computeClassGroupV2From: methods [
 
 	"return a dictionnary where the class are the keys and their methods are the values "
 
@@ -260,7 +260,7 @@ EGFInvocationModel >> computeClassGroupV2From: methods [
 ]
 
 { #category : #compute }
-EGFInvocationModel >> computeMethodsSetFrom: graph [
+EGFCallflowModel >> computeMethodsSetFrom: graph [
 
 	"from a invocationGraph based on the methods, outputs the class dependencies of these methods. 
 	from A,B two classes and mA, mB two methods,
@@ -297,19 +297,19 @@ EGFInvocationModel >> computeMethodsSetFrom: graph [
 ]
 
 { #category : #accessing }
-EGFInvocationModel >> entryPoint [
+EGFCallflowModel >> entryPoint [
 
 	^ entryPoint
 ]
 
 { #category : #accessing }
-EGFInvocationModel >> entryPoint: aFamixJavaMethod [
+EGFCallflowModel >> entryPoint: aFamixJavaMethod [
 
 	entryPoint := aFamixJavaMethod
 ]
 
 { #category : #'as yet unclassified' }
-EGFInvocationModel >> exportCSV [
+EGFCallflowModel >> exportCSV [
 
 	| export |
 	export := String new.
@@ -329,7 +329,7 @@ EGFInvocationModel >> exportCSV [
 ]
 
 { #category : #'as yet unclassified' }
-EGFInvocationModel >> exportComplexityCycloDiagramCSV [
+EGFCallflowModel >> exportComplexityCycloDiagramCSV [
 
 	"export in CSV format a table of all methods with their respective cyclomatic Complexity. Sort the methods in respect of the invocation order."
 
@@ -367,7 +367,7 @@ EGFInvocationModel >> exportComplexityCycloDiagramCSV [
 ]
 
 { #category : #script }
-EGFInvocationModel >> flattenInvocationGraph [
+EGFCallflowModel >> flattenInvocationGraph [
 
 	| recBlock seen |
 	self
@@ -406,12 +406,12 @@ EGFInvocationModel >> flattenInvocationGraph [
 ]
 
 { #category : #accessing }
-EGFInvocationModel >> flattenMethods [
+EGFCallflowModel >> flattenMethods [
 	^ flattenMethods
 ]
 
 { #category : #intialization }
-EGFInvocationModel >> initFrom: graph [
+EGFCallflowModel >> initFrom: graph [
 
 	self
 		deprecated: 'Use #initFromInvocationGraph:andMethod: instead'
@@ -434,7 +434,7 @@ EGFInvocationModel >> initFrom: graph [
 ]
 
 { #category : #intialization }
-EGFInvocationModel >> initFromInvocationGraph: aGraph andMethod: methods [
+EGFCallflowModel >> initFromInvocationGraph: aGraph andMethod: methods [
 
 	self
 		deprecated: 'Use #initFromMethods:andAnEntryPoint: instead'
@@ -457,7 +457,7 @@ EGFInvocationModel >> initFromInvocationGraph: aGraph andMethod: methods [
 ]
 
 { #category : #intialization }
-EGFInvocationModel >> initFromMethods: methods andAnEntryPoint: aMethod [
+EGFCallflowModel >> initFromMethods: methods andAnEntryPoint: aMethod [
 
 	classGroup := Set new.
 	classDependencies := Dictionary new.
@@ -472,7 +472,7 @@ EGFInvocationModel >> initFromMethods: methods andAnEntryPoint: aMethod [
 ]
 
 { #category : #intialization }
-EGFInvocationModel >> initialize [
+EGFCallflowModel >> initialize [
 
 	classGroup := Set new.
 	classDependencies := Dictionary new.
@@ -481,7 +481,7 @@ EGFInvocationModel >> initialize [
 ]
 
 { #category : #accessing }
-EGFInvocationModel >> invocationGraph [
+EGFCallflowModel >> invocationGraph [
 
 	self
 		deprecated: 'Use #nothing instead'
@@ -492,7 +492,7 @@ EGFInvocationModel >> invocationGraph [
 ]
 
 { #category : #setter }
-EGFInvocationModel >> invocationGraph: aCollection [
+EGFCallflowModel >> invocationGraph: aCollection [
 
 	self
 		deprecated: 'Use #nothing instead'
@@ -504,7 +504,7 @@ EGFInvocationModel >> invocationGraph: aCollection [
 ]
 
 { #category : #accessing }
-EGFInvocationModel >> methods [
+EGFCallflowModel >> methods [
 
 	^ self flattenMethods
 ]

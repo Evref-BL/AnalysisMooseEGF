@@ -2,11 +2,11 @@ Class {
 	#name : #RSeGFService,
 	#superclass : #Object,
 	#instVars : [
-		'eGFInvocationModel',
 		'canvas',
 		'allMethods',
 		'allClasses',
-		'serviceTrace'
+		'serviceTrace',
+		'eGFCallflowModel'
 	],
 	#category : #AnalysisMooseEGF
 }
@@ -116,7 +116,7 @@ RSeGFService >> addHighlightEffect: aShape [
 		when: RSHighlightEvent do: [ :evt | 
 			| invocMethods arrows |
 			"get the models, which are the invoked methods by our current method"
-			invocMethods := eGFInvocationModel methods at: method.
+			invocMethods := eGFCallflowModel methods at: method.
 
 			"build and collect each arrow we need to add to the canvas"
 			arrows := (invocMethods collect: [ :fromMet | 
@@ -188,8 +188,8 @@ RSeGFService >> buildClassDependenciesCanvas [
 	allMethods := RSGroup new.
 	allClasses := RSGroup new.
 
-	ssShapes := eGFInvocationModel classGroup copy.
-	ssClassDep := eGFInvocationModel classDependencies copy.
+	ssShapes := eGFCallflowModel classGroup copy.
+	ssClassDep := eGFCallflowModel classDependencies copy.
 
 
 	canvas := RSCanvas new.
@@ -309,7 +309,7 @@ RSeGFService >> buildEdgeBundlingCanvas [
 	"shapes := OrderedCollection new."
 	canvas := RSCanvas new.
 
-	methods := eGFInvocationModel methods copy.
+	methods := eGFCallflowModel methods copy.
 
 	shapes := methods associations asSet
 		          collect: [ :assoc | 
@@ -362,7 +362,7 @@ RSeGFService >> buildInvocationGraphCanvas [
 	| ssShapes shapes labeled start legend |
 	allMethods := RSGroup new.
 
-	ssShapes := eGFInvocationModel methods copy.
+	ssShapes := eGFCallflowModel methods copy.
 
 	canvas := RSCanvas new.
 	shapes := OrderedCollection new.
@@ -386,7 +386,7 @@ RSeGFService >> buildInvocationGraphCanvas [
 	start := 'START'.
 	ssShapes
 		at: start
-		ifAbsentPut: eGFInvocationModel entryPoint asOrderedCollection.
+		ifAbsentPut: eGFCallflowModel entryPoint asOrderedCollection.
 
 	shapes := shapes asOrderedCollection.
 
@@ -501,7 +501,7 @@ RSeGFService >> createLegend: aStringArray [
 RSeGFService >> debugCanvasBuilding [
 
 	| ssShapes shapes labeled start legend |
-	ssShapes := eGFInvocationModel methods copy.
+	ssShapes := eGFCallflowModel methods copy.
 
 	canvas := RSCanvas new.
 	shapes := OrderedCollection new.
@@ -541,7 +541,7 @@ RSeGFService >> debugCanvasBuilding [
 	start := 'START'.
 	ssShapes
 		at: start
-		ifAbsentPut: eGFInvocationModel entryPoint asOrderedCollection.
+		ifAbsentPut: eGFCallflowModel entryPoint asOrderedCollection.
 
 	shapes := shapes asOrderedCollection.
 
@@ -641,8 +641,9 @@ RSeGFService >> drawV2TraceEdgeFrom: aTraceAsOrderedCollection [
 ]
 
 { #category : #testing }
-RSeGFService >> eGFInvocationModel: anEGFInvocationModel [
-	eGFInvocationModel := anEGFInvocationModel.
+RSeGFService >> eGFCallflowFromModel: anEGFCallflowModel [
+
+	eGFCallflowModel := anEGFCallflowModel
 ]
 
 { #category : #setter }
@@ -765,7 +766,7 @@ RSeGFService >> hasForeignSenders: aMethod [
 	| incomings |
 	incomings := (aMethod incomingInvocations collect: [ :invoc | 
 		              invoc sender ]) select: [ :mth | 
-		             eGFInvocationModel methods
+		             eGFCallflowModel methods
 			             at: mth
 			             ifPresent: [ false ]
 			             ifAbsent: [ true ] ].
@@ -799,6 +800,11 @@ RSeGFService >> highlightClassesOfTrace: aTraceAsOrderedCollect [
 
 		isIn := self hasSubString: model mooseNameWithDots containing: trace.
 		isIn ifTrue: [ shape color: Color purple translucent ] ]
+]
+
+{ #category : #initialization }
+RSeGFService >> initialize [ 
+	serviceTrace := OrderedCollection new. 
 ]
 
 { #category : #setter }
