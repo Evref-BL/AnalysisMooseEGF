@@ -46,92 +46,6 @@ EGFCallflowModel >> classGroup: aCollection [
 ]
 
 { #category : #compute }
-EGFCallflowModel >> computeClassDependencies [
-
-	"from a invocationGraph based on the methods, outputs the class dependencies of these methods. 
-	from A,B two classes and mA, mB two methods,
-	if A:mA() invokes B:mB() then the their is a class dependencies from A to B.	
-	"
-
-	| recBlock seen classDep |
-	self
-		deprecated: 'Use #computeClassDependenciesFrom: instead'
-		on: '26 July 2023'
-		in:
-		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
-	seen := Dictionary new.
-	classDep := Dictionary new.
-
-
-	recBlock := [ :root | "explore next invocation"
-	            root keysDo: [ :key | 
-		            seen at: key ifAbsent: [ 
-			            seen at: key put: true.
-
-
-			            classDep at: key parentType put: Set new.
-			            (root at: key) keysDo: [ :invoc | 
-				            classDep
-					            at: key parentType
-					            ifPresent: [ :v | v add: invoc parentType ]
-					            ifAbsent: [ 
-						            classDep
-							            at: key parentType
-							            put: (Set newFrom: { invoc parentType }) ] ].
-
-
-			            recBlock value: (root at: key) ] ] ].
-
-	invocationGraph valuesDo: [ :dicInvo | 
-		dicInvo keysDo: [ :key | recBlock value: (dicInvo at: key) ] ].
-
-	^ classDep
-]
-
-{ #category : #compute }
-EGFCallflowModel >> computeClassDependenciesFrom: graph [
-
-	"from a invocationGraph based on the methods, outputs the class dependencies of these methods. 
-	from A,B two classes and mA, mB two methods,
-	if A:mA() invokes B:mB() then the their is a class dependencies from A to B.	
-	"
-
-	| recBlock seen classDep |
-	self
-		deprecated: 'Use #computeClassDependenciesV2From: instead'
-		on: '27 July 2023'
-		in:
-		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
-	seen := Dictionary new.
-	classDep := Dictionary new.
-
-
-	recBlock := [ :root | "explore next invocation"
-	            root keysDo: [ :key | 
-		            seen at: key ifAbsent: [ 
-			            seen at: key put: true.
-
-
-			            classDep at: key parentType put: Set new.
-			            (root at: key) keysDo: [ :invoc | 
-				            classDep
-					            at: key parentType
-					            ifPresent: [ :v | v add: invoc parentType ]
-					            ifAbsent: [ 
-						            classDep
-							            at: key parentType
-							            put: (Set newFrom: { invoc parentType }) ] ].
-
-
-			            recBlock value: (root at: key) ] ] ].
-
-	graph valuesDo: [ :dicInvo | 
-		dicInvo keysDo: [ :key | recBlock value: (dicInvo at: key) ] ].
-
-	^ classDep
-]
-
-{ #category : #compute }
 EGFCallflowModel >> computeClassDependenciesV2From: methods [
 
 	"from a invocationGraph based on the methods, outputs the class dependencies of these methods. 
@@ -161,77 +75,6 @@ EGFCallflowModel >> computeClassDependenciesV2From: methods [
 ]
 
 { #category : #compute }
-EGFCallflowModel >> computeClassGroup [
-
-	| recBlock seen seenClasses |
-	self
-		deprecated: 'Use #computeClassGroupFrom: instead'
-		on: '26 July 2023'
-		in:
-		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
-
-	seen := Dictionary new.
-	seenClasses := Dictionary new.
-
-
-	recBlock := [ :root | 
-	            root keysDo: [ :key | "line of code""1 halt."
-		            seenClasses
-			            at: key parentType
-			            ifPresent: [ :v | v add: key ]
-			            ifAbsent: [ 
-			            seenClasses
-				            at: key parentType
-				            put: (Set newFrom: { key }) ] ].
-
-	            "explore next invocation"
-	            root keysDo: [ :key | 
-		            seen at: key ifAbsent: [ 
-			            seen at: key put: true.
-			            recBlock value: (root at: key) ] ] ].
-
-	invocationGraph valuesDo: [ :dicInvo | 
-		dicInvo keysDo: [ :key | recBlock value: (dicInvo at: key) ] ].
-
-	^ seenClasses
-]
-
-{ #category : #compute }
-EGFCallflowModel >> computeClassGroupFrom: graph [
-
-	| recBlock seen seenClasses |
-	self
-		deprecated: 'Use #computeClassGroupV2From: instead'
-		on: '27 July 2023'
-		in:
-		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
-	seen := Dictionary new.
-	seenClasses := Dictionary new.
-
-
-	recBlock := [ :root | 
-	            root keysDo: [ :key | "line of code""1 halt."
-		            seenClasses
-			            at: key parentType
-			            ifPresent: [ :v | v add: key ]
-			            ifAbsent: [ 
-			            seenClasses
-				            at: key parentType
-				            put: (Set newFrom: { key }) ] ].
-
-	            "explore next invocation"
-	            root keysDo: [ :key | 
-		            seen at: key ifAbsent: [ 
-			            seen at: key put: true.
-			            recBlock value: (root at: key) ] ] ].
-
-	graph valuesDo: [ :dicInvo | 
-		dicInvo keysDo: [ :key | recBlock value: (dicInvo at: key) ] ].
-
-	^ seenClasses
-]
-
-{ #category : #compute }
 EGFCallflowModel >> computeClassGroupV2From: methods [
 
 	"return a dictionnary where the class are the keys and their methods are the values "
@@ -257,43 +100,6 @@ EGFCallflowModel >> computeClassGroupV2From: methods [
 			 ].
 
 	^ seenClasses
-]
-
-{ #category : #compute }
-EGFCallflowModel >> computeMethodsSetFrom: graph [
-
-	"from a invocationGraph based on the methods, outputs the class dependencies of these methods. 
-	from A,B two classes and mA, mB two methods,
-	if A:mA() invokes B:mB() then the their is a class dependencies from A to B.	
-	"
-
-	| recBlock seen methods |
-	self
-		deprecated: 'do not use anymore'
-		on: '26 July 2023'
-		in:
-		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
-
-	seen := Dictionary new.
-	methods := Set new.
-
-
-	recBlock := [ :root | 
-	            root keysDo: [ :key | 
-		            methods add:
-			            (EGFMethodModel initFrom: key and: (root at: key)) ].
-
-
-	            "explore next invocation"
-	            root keysDo: [ :key | 
-		            seen at: key ifAbsent: [ 
-			            seen at: key put: true.
-			            recBlock value: (root at: key) ] ] ].
-
-	graph valuesDo: [ :dicInvo | 
-		dicInvo keysDo: [ :key | recBlock value: (dicInvo at: key) ] ].
-
-	^ methods
 ]
 
 { #category : #accessing }
@@ -366,48 +172,16 @@ EGFCallflowModel >> exportComplexityCycloDiagramCSV [
 	^ export
 ]
 
-{ #category : #script }
-EGFCallflowModel >> flattenInvocationGraph [
-
-	| recBlock seen |
-	self
-		deprecated: 'Use #nothing instead'
-		on: '27 July 2023'
-		in:
-		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
-	seen := Dictionary new.
-
-	seen at: self entryPoint ifAbsent: [ 
-		seen
-			at: self entryPoint
-			put:
-			(self invocationGraph at: self entryPoint) keys asOrderedCollection ].
-
-	recBlock := [ :method | "explore next invocation"
-	            method keysDo: [ :key | 
-		            seen at: key ifAbsent: [ 
-			            seen
-				            at: key
-				            put: (method at: key) keys asOrderedCollection.
-
-			            recBlock value: (method at: key) ] ] ].
-
-	self invocationGraph valuesDo: [ :dicInvo | 
-		dicInvo keysDo: [ :key | 
-			seen
-				at: key
-				ifAbsent: [ 
-				seen at: key put: (dicInvo at: key) keys asOrderedCollection ].
-			recBlock value: (dicInvo at: key) ] ].
-
-
-
-	^ seen
-]
-
 { #category : #accessing }
 EGFCallflowModel >> flattenMethods [
 	^ flattenMethods
+]
+
+{ #category : #'computing - dependencies' }
+EGFCallflowModel >> hasDependenciesWith: anEGFCallflowModel [ 
+	
+	
+	^ (self flattenMethods keys intersection: (anEGFCallflowModel flattenMethods keys)) size > 0
 ]
 
 { #category : #intialization }

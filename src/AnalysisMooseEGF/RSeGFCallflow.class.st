@@ -1,5 +1,5 @@
 Class {
-	#name : #RSeGFService,
+	#name : #RSeGFCallflow,
 	#superclass : #Object,
 	#instVars : [
 		'canvas',
@@ -12,7 +12,7 @@ Class {
 }
 
 { #category : #'as yet unclassified' }
-RSeGFService >> WIPNewClassDependenciesCanvas [
+RSeGFCallflow >> WIPNewClassDependenciesCanvas [
 
 	"comment stating purpose of instance-side method"
 
@@ -102,7 +102,7 @@ RSeGFService >> WIPNewClassDependenciesCanvas [
 ]
 
 { #category : #adding }
-RSeGFService >> addHighlightEffect: aShape [
+RSeGFCallflow >> addHighlightEffect: aShape [
 
 	| high method arrow |
 	
@@ -143,19 +143,19 @@ RSeGFService >> addHighlightEffect: aShape [
 ]
 
 { #category : #accessing }
-RSeGFService >> allClasses [
+RSeGFCallflow >> allClasses [
 
 	^ allClasses
 ]
 
 { #category : #accessing }
-RSeGFService >> allClasses: anObject [
+RSeGFCallflow >> allClasses: anObject [
 
 	allClasses := anObject
 ]
 
 { #category : #'as yet unclassified' }
-RSeGFService >> applyFiltersOn: shapes [
+RSeGFCallflow >> applyFiltersOn: shapes [
 
 	"apply 3 commons filter on the shapes""color the border of method are only invoked by method on this graph"
 
@@ -182,7 +182,7 @@ RSeGFService >> applyFiltersOn: shapes [
 ]
 
 { #category : #'as yet unclassified' }
-RSeGFService >> buildClassDependenciesCanvas [
+RSeGFCallflow >> buildClassDependenciesCanvas [
 
 	| ssShapes ssClassDep shapes layout stepping |
 	allMethods := RSGroup new.
@@ -303,7 +303,7 @@ RSeGFService >> buildClassDependenciesCanvas [
 ]
 
 { #category : #'as yet unclassified' }
-RSeGFService >> buildEdgeBundlingCanvas [
+RSeGFCallflow >> buildEdgeBundlingCanvas [
 
 	| methods shapes |
 	"shapes := OrderedCollection new."
@@ -357,7 +357,7 @@ RSeGFService >> buildEdgeBundlingCanvas [
 ]
 
 { #category : #'as yet unclassified' }
-RSeGFService >> buildInvocationGraphCanvas [
+RSeGFCallflow >> buildInvocationGraphCanvas [
 
 	| ssShapes shapes labeled start legend |
 	allMethods := RSGroup new.
@@ -434,7 +434,7 @@ canvas @ stepping."
 ]
 
 { #category : #'as yet unclassified' }
-RSeGFService >> buildMethodBox: method [
+RSeGFCallflow >> buildMethodBox: method [
 
 	| srcCode shape  |
 	srcCode := method sourceText.
@@ -457,13 +457,13 @@ RSeGFService >> buildMethodBox: method [
 ]
 
 { #category : #accessing }
-RSeGFService >> canvas [
+RSeGFCallflow >> canvas [
 
 	^ canvas
 ]
 
 { #category : #'as yet unclassified' }
-RSeGFService >> collectClassShapeFromTrace: aTraceAsOrderedCollection [
+RSeGFCallflow >> collectClassShapeFromTrace: aTraceAsOrderedCollection [
 
 	| prunedTrace trace |
 	
@@ -483,7 +483,7 @@ RSeGFService >> collectClassShapeFromTrace: aTraceAsOrderedCollection [
 ]
 
 { #category : #'as yet unclassified' }
-RSeGFService >> createLegend: aStringArray [
+RSeGFCallflow >> createLegend: aStringArray [
 
 	| legend |
 	legend := RSLegend new container: canvas.
@@ -498,7 +498,7 @@ RSeGFService >> createLegend: aStringArray [
 ]
 
 { #category : #'as yet unclassified' }
-RSeGFService >> debugCanvasBuilding [
+RSeGFCallflow >> debugCanvasBuilding [
 
 	| ssShapes shapes labeled start legend |
 	ssShapes := eGFCallflowModel methods copy.
@@ -589,7 +589,7 @@ canvas @ stepping."
 ]
 
 { #category : #'as yet unclassified' }
-RSeGFService >> drawTraceEdgeFrom: aTraceAsOrderedCollection [
+RSeGFCallflow >> drawTraceEdgeFrom: aTraceAsOrderedCollection [
 
 	| trace traceModel |
 	trace := aTraceAsOrderedCollection collect: [ :moosename | 
@@ -617,7 +617,7 @@ RSeGFService >> drawTraceEdgeFrom: aTraceAsOrderedCollection [
 ]
 
 { #category : #'as yet unclassified' }
-RSeGFService >> drawV2TraceEdgeFrom: aTraceAsOrderedCollection [
+RSeGFCallflow >> drawV2TraceEdgeFrom: aTraceAsOrderedCollection [
 
 	| trace traceModel innerTrace |
 	trace := aTraceAsOrderedCollection collect: [ :moosename | 
@@ -641,18 +641,18 @@ RSeGFService >> drawV2TraceEdgeFrom: aTraceAsOrderedCollection [
 ]
 
 { #category : #testing }
-RSeGFService >> eGFCallflowFromModel: anEGFCallflowModel [
+RSeGFCallflow >> eGFCallflowFromModel: anEGFCallflowModel [
 
 	eGFCallflowModel := anEGFCallflowModel
 ]
 
 { #category : #setter }
-RSeGFService >> executionTrace: aCollection [ 
+RSeGFCallflow >> executionTrace: aCollection [ 
 	self shouldBeImplemented.
 ]
 
 { #category : #filtering }
-RSeGFService >> filterShapes: shapes with: aBlock [
+RSeGFCallflow >> filterShapes: shapes with: aBlock [
 
 	"return a collection of RS object filter by the statement given in aBlock."
 
@@ -662,7 +662,7 @@ RSeGFService >> filterShapes: shapes with: aBlock [
 ]
 
 { #category : #filtering }
-RSeGFService >> filterShapesOnDAOLayer [
+RSeGFCallflow >> filterShapesOnDAOLayer [
 
 	"return a filtering block to excludes shapes associated with a methods model that begins with get/set"
 
@@ -674,7 +674,7 @@ RSeGFService >> filterShapesOnDAOLayer [
 ]
 
 { #category : #filtering }
-RSeGFService >> filterShapesOnExecutingSQL [
+RSeGFCallflow >> filterShapesOnExecutingSQL [
 
 	"return a filtering block to excludes shapes associated with a methods model that begins with get/set"
 
@@ -688,7 +688,7 @@ RSeGFService >> filterShapesOnExecutingSQL [
 ]
 
 { #category : #filtering }
-RSeGFService >> filterShapesOnGettterSetter [
+RSeGFCallflow >> filterShapesOnGettterSetter [
 
 	"return a filtering block to excludes shapes associated with a methods model that begins with get/set"
 
@@ -701,7 +701,7 @@ RSeGFService >> filterShapesOnGettterSetter [
 ]
 
 { #category : #filtering }
-RSeGFService >> filterShapesOnHavingForeignSenders [
+RSeGFCallflow >> filterShapesOnHavingForeignSenders [
 
 	"return a filtering block to excludes shapes associated with a methods model that receive invocation from method that are not in this methods group"
 
@@ -712,7 +712,7 @@ RSeGFService >> filterShapesOnHavingForeignSenders [
 ]
 
 { #category : #filtering }
-RSeGFService >> filterShapesOnReferencingSQL [
+RSeGFCallflow >> filterShapesOnReferencingSQL [
 
 	"return a filtering block to excludes shapes associated with a methods model that begins with get/set"
 
@@ -724,7 +724,7 @@ RSeGFService >> filterShapesOnReferencingSQL [
 ]
 
 { #category : #filtering }
-RSeGFService >> filterShapesOnServiceLayer [
+RSeGFCallflow >> filterShapesOnServiceLayer [
 
 	"return a filtering block to excludes shapes associated with a methods model that begins with get/set"
 
@@ -736,7 +736,7 @@ RSeGFService >> filterShapesOnServiceLayer [
 ]
 
 { #category : #filtering }
-RSeGFService >> filterShapesOnUCLayer [
+RSeGFCallflow >> filterShapesOnUCLayer [
 
 	"return a filtering block to excludes shapes associated with a methods model that begins with get/set"
 
@@ -748,7 +748,7 @@ RSeGFService >> filterShapesOnUCLayer [
 ]
 
 { #category : #'as yet unclassified' }
-RSeGFService >> findShapeIn: aCollection FromMoosename: aMooseName [
+RSeGFCallflow >> findShapeIn: aCollection FromMoosename: aMooseName [
 
 	^ (aCollection select: [ :shape | 
 		|regex|
@@ -759,7 +759,7 @@ RSeGFService >> findShapeIn: aCollection FromMoosename: aMooseName [
 ]
 
 { #category : #testing }
-RSeGFService >> hasForeignSenders: aMethod [
+RSeGFCallflow >> hasForeignSenders: aMethod [
 
 	" check if aMethod receive invocation from method that are not in the current invocation model"
 
@@ -774,7 +774,7 @@ RSeGFService >> hasForeignSenders: aMethod [
 ]
 
 { #category : #testing }
-RSeGFService >> hasSubString: txt containing: keywords [
+RSeGFCallflow >> hasSubString: txt containing: keywords [
 
 	| res |
 	res := keywords select: [ :word | 
@@ -784,7 +784,7 @@ RSeGFService >> hasSubString: txt containing: keywords [
 ]
 
 { #category : #filtering }
-RSeGFService >> highlightClassesOfTrace: aTraceAsOrderedCollect [
+RSeGFCallflow >> highlightClassesOfTrace: aTraceAsOrderedCollect [
 
 
 	self collectClassShapeFromTrace: aTraceAsOrderedCollect.
@@ -803,17 +803,23 @@ RSeGFService >> highlightClassesOfTrace: aTraceAsOrderedCollect [
 ]
 
 { #category : #initialization }
-RSeGFService >> initialize [ 
+RSeGFCallflow >> initialize [ 
 	serviceTrace := OrderedCollection new. 
 ]
 
+{ #category : #testing }
+RSeGFCallflow >> model: anEGFCallflowModel [
+
+	eGFCallflowModel := anEGFCallflowModel
+]
+
 { #category : #setter }
-RSeGFService >> serviceTrace: aCollection [ 
+RSeGFCallflow >> serviceTrace: aCollection [ 
 	serviceTrace := aCollection
 ]
 
 { #category : #'as yet unclassified' }
-RSeGFService >> sqlKeywords [
+RSeGFCallflow >> sqlKeywords [
 
 	^ { 'SELECT'. 'FROM'. 'WHERE'. 'INSERT'. 'UPDATE'.
 	  'DELETE'. 'JOIN'. 'GROUP BY'. 'ORDER BY'. 'CREATE'.

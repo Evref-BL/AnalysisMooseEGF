@@ -27,57 +27,52 @@ EGFEvolAnalysis class >> loadAllUcImpl [
 
 	| egf ucs |
 	egf := self new.
-	ucs := egf retrieveAllServiceEndPoint reject: [ :assoc | 
+	ucs := egf retrieveAllServiceEndpoints reject: [ :assoc | 
 		       assoc value name = 'create' ].
 	ucs do: [ :assoc | "stock results in cache"
 		egf
-			callFlowModelFromUCName: assoc key name
-			andMethodName: assoc value name ]
+			callflowModelFromUCName: assoc key name
+			andMethodName: assoc value name ].
+	^ egf 	
 ]
 
-{ #category : #script }
-EGFEvolAnalysis >> OldComputeInvocationGraphOfUc: ucName andMethods: mthName withCache: withCache [
+{ #category : #'as yet unclassified' }
+EGFEvolAnalysis class >> loadRandomUcImpl: aNumber [
 
-	"ucName := 'UcTiersComptableImpl'.
-	mthName := 'fournirListeTiersComptablesIHM'."
+	| egf ucs |
+	egf := self new.
+	ucs := egf retrieveAllServiceEndpoints reject: [ :assoc | 
+		       assoc value name = 'create' ].
+	1 halt.
+	ucs do: [ :assoc | "stock results in cache"
+		egf
+			callflowModelFromUCName: assoc key name
+			andMethodName: assoc value name ].
+	^ egf
+]
 
-	<script>
-	| evol ucs seen res block meth |
-	self
-		deprecated:
-		'Use #computeInvocationGraphOfUc:andMethods:withCache: instead'
-		on: '26 July 2023'
-		in:
-		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
-	evol := MooseModel root at: 1.
-	ucs := evol allClasses select: [ :c | 
-		       (c name beginsWith: 'uc' caseSensitive: false) and: [ 
-			       c name endsWith: 'impl' caseSensitive: false ] ].
-	seen := Dictionary new.
-	res := Dictionary new.
-	block := [ :m :outgoing | 
-	         m queryAllOutgoing select: #isInvocation thenDo: [ :i | 
-		         | method |
-		         method := i candidates anyOne.
-		         method isStub ifFalse: [ 
-			         seen
-				         at: method
-				         ifPresent: [ :out | outgoing at: method put: out ]
-				         ifAbsent: [ 
-					         | recurOut |
-					         recurOut := Dictionary new.
-					         outgoing at: method put: recurOut.
-					         seen at: method put: recurOut.
-					         block value: method value: recurOut ] ] ].
-	         outgoing ].
-	meth := (ucs detect: [ :uc | uc name = ucName ]) methods detect: [ :m | 
-		        m name = mthName ].
-	res at: meth put: (block value: meth value: Dictionary new).
+{ #category : #'as yet unclassified' }
+EGFEvolAnalysis class >> loadTenFirstUcImpl [
 
-	withCache ifTrue: [ 
-		modelCache at: ucName , mthName put: res ].
+	| egf ucs |
+	egf := self new.
+	ucs := egf retrieveAllServiceEndpoints reject: [ :assoc | 
+		       assoc value name = 'create' ].
 
-	^ res
+	ucs from: 1 to: 10 do: [ :assoc | "stock results in cache"
+		egf
+			callflowModelFromUCName: assoc key name
+			andMethodName: assoc value name ].
+	^ egf
+]
+
+{ #category : #'as yet unclassified' }
+EGFEvolAnalysis >> allCallflowModelFromEndpoints: endpoints [
+
+	^ endpoints collect:  [ :assoc | "stock results in cache"
+		self
+			callflowModelFromUCName: assoc key name
+			andMethodName: assoc value name ].
 ]
 
 { #category : #'as yet unclassified' }
@@ -95,230 +90,120 @@ EGFEvolAnalysis >> allInvockedMethodsOf: aMethod [
 		  methodInvoc isStub = false ]
 ]
 
-{ #category : #script }
-EGFEvolAnalysis >> analysis [
-
-	<script>
-	| evol ucs seen res block meth |
-	self
-		deprecated: 'Use #nothing instead'
-		on: '27 July 2023'
-		in:
-		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
-	evol := MooseModel root at: 1.
-	ucs := evol allClasses select: [ :c | 
-		       (c name beginsWith: 'uc' caseSensitive: false) and: [ 
-			       c name endsWith: 'impl' caseSensitive: false ] ].
-	seen := Dictionary new.
-	res := Dictionary new.
-	block := [ :m :outgoing | 
-	         m queryAllOutgoing select: #isInvocation thenDo: [ :i | 
-		         | method |
-		         method := i candidates anyOne.
-		         method isStub ifFalse: [ 
-			         seen
-				         at: method
-				         ifPresent: [ :out | outgoing at: method put: out ]
-				         ifAbsent: [ 
-					         | recurOut |
-					         recurOut := Dictionary new.
-					         outgoing at: method put: recurOut.
-					         seen at: method put: recurOut.
-					         block value: method value: recurOut ] ] ].
-	         outgoing ].
-	meth := (ucs detect: [ :uc | uc name = 'UcTiersComptableImpl' ])
-		        methods detect: [ :m | 
-		        m name = 'fournirListeTiersComptablesIHM' ].
-	res at: meth put: (block value: meth value: Dictionary new).
-	^ res
-]
-
 { #category : #'as yet unclassified' }
-EGFEvolAnalysis >> callFlowModelFromUCName: UCname andMethodName: methodName [
+EGFEvolAnalysis >> callflowModelFromUCName: UCname andMethodName: methodName [
 
 	"create a instance of eGFModelInvocation"
 
-	| model methodSet entryPoint |
-	callflowCache at: UCname , methodName ifAbsent: [ 
+	| methodSet entryPoint keyName|
+	keyName := (self uc: UCname endpoint: methodName).
+	callflowCache at: keyName ifAbsent: [ 
 		self
-			computeCallFlowOfUc: UCname
+			computeCallflowOfUc: UCname
 			andMethodName: methodName
 			withCache: true ].
 
-	methodSet := (callflowCache at: UCname , methodName) value.
-	entryPoint := (callflowCache at: UCname , methodName) key.
+	methodSet := (callflowCache at: keyName) value.
+	entryPoint := (callflowCache at: keyName) key.
 
 
-	^ modelCache at: UCname , methodName ifAbsentPut: [ 
-		  model := EGFCallflowModel new.
-		  model initFromMethods: methodSet andAnEntryPoint: entryPoint ]
+	^ modelCache at: keyName ifAbsentPut: [ 
+		  self
+			  computeCallflowModelWithMethods: methodSet
+			  andAnEntryPoint: entryPoint ]
 ]
 
-{ #category : #script }
-EGFEvolAnalysis >> computeCallFlowOfUc: ucName andMethodName: mthName withCache: withCache [
-
-	"ucName := 'UcTiersComptableImpl'.
-	mthName := 'fournirListeTiersComptablesIHM'."
-
-	<script>
-	| evol ucs  res meth |
-	evol := MooseModel root at: 1.
-	"get all class that is an UCs in eGF"
-	ucs := evol allClasses select: [ :c | 
-		       (c name beginsWith: 'uc' caseSensitive: false) and: [ 
-			       c name endsWith: 'impl' caseSensitive: false ] ].
-
-	res := Dictionary new.
-
-
-	"get methods of the UC named from parameters that are named named also from parameters"
-	meth := (ucs detect: [ :uc | uc name = ucName ]) methods detect: [ :m | 
-		        m name = mthName ].
-
-	res := self retrieveInvocationGraphFromMethod: meth.
-
-	withCache ifTrue: [ 
-		callflowCache at: ucName , mthName put: meth -> res ].
-
-	^ self
-]
-
-{ #category : #script }
-EGFEvolAnalysis >> computeInvocationGraphOfUc: ucName andMethodName: mthName withCache: withCache [
-
-	"ucName := 'UcTiersComptableImpl'.
-	mthName := 'fournirListeTiersComptablesIHM'."
-
-	<script>
-	| evol ucs visitedMethods res block meth |
-	self
-		deprecated:
-		'Use #newComputeInvocationGraphOfUc:andMethodName:withCache: instead'
-		on: '27 July 2023'
-		in:
-		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
-	evol := MooseModel root at: 1.
-	"get all class that is an UCs in eGF"
-	ucs := evol allClasses select: [ :c | 
-		       (c name beginsWith: 'uc' caseSensitive: false) and: [ 
-			       c name endsWith: 'impl' caseSensitive: false ] ].
-
-	visitedMethods := Dictionary new.
-	res := Dictionary new.
-
-	"recursive visiting block"
-	block := [ :method :outgoing | "look throught all outgoing entities of m and search the invocation m makes"
-	         (method queryAllOutgoing select: #isInvocation)
-		         asOrderedCollection do: [ :invocation | 
-		         | methodInvoc |
-		         "select any candidate method that could be the receiver candidat of m"
-		         methodInvoc := invocation candidates anyOne.
-
-		         "if the invoked method is not a stub"
-		         methodInvoc isStub ifFalse: [ "check if this methodInvoc not stub as already been seen"
-			         visitedMethods
-				         at: methodInvoc
-				         ifPresent: [ :out | outgoing at: methodInvoc put: out ]
-				         ifAbsent: [ 
-					         | recurOut |
-					         recurOut := Dictionary new.
-					         outgoing at: methodInvoc put: recurOut.
-					         visitedMethods at: methodInvoc put: recurOut.
-					         block value: methodInvoc value: recurOut ] ] ].
-	         outgoing ].
-
-	"get methods of the UC named from parameters that are named named also from parameters"
-	meth := (ucs detect: [ :uc | uc name = ucName ]) methods detect: [ :m | 
-		        m name = mthName ].
-
-
-	"recursivly explore the methods invocations graph"
-	res at: meth put: (block value: meth value: Dictionary new).
-
-
-
-	withCache ifTrue: [ 
-		modelCache at: ucName , mthName put: res.
-
-		callflowCache
-			at: ucName , mthName
-			put: (self flattenInvocationGraph: res) ].
-
-	^ self
-]
-
-{ #category : #'as yet unclassified' }
-EGFEvolAnalysis >> createEGFModelFromUCName: UCname andMethodName: methodName [
-
-	"create a instance of eGFModelInvocation"
-
-	| model invocGraph methodSet |
-	self
-		deprecated:
-		'Use #newCreateEGFModelFromUCName:andMethodName: instead'
-		on: '27 July 2023'
-		in:
-		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
-	model := EGFCallflowModel new.
-
-	modelCache at: UCname , methodName ifAbsent: [ 
-		self
-			computeInvocationGraphOfUc: UCname
-			andMethodName: methodName
-			withCache: true ].
-
-	invocGraph := modelCache at: UCname , methodName.
-	methodSet := callflowCache at: UCname , methodName.
-
-	model initFromInvocationGraph: invocGraph andMethod: methodSet.
-	^ model
-]
-
-{ #category : #'as yet unclassified' }
-EGFEvolAnalysis >> flattenInvocationGraph: invocationGraph [
+{ #category : #'instance creation' }
+EGFEvolAnalysis >> computeCallflowFromMethod: aMethod [
 
 	"retrieve the invocation methods graph as a flatten dictionary"
 
-	| recBlock seen entryPoint |
-	self
-		deprecated: 'Use #retrieveInvocationGraphFromMethod: instead'
-		on: '27 July 2023'
-		in:
-		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
+	| recBlock seen |
 	seen := Dictionary new.
 
-	entryPoint := invocationGraph keys first.
-
-	seen at: entryPoint ifAbsent: [ 
-		seen
-			at: entryPoint
-			put: (invocationGraph at: entryPoint) keys asOrderedCollection ].
 
 	recBlock := [ :method | "explore next invocation"
-	            method keysDo: [ :key | 
-		            seen at: key ifAbsent: [ 
-			            seen
-				            at: key
-				            put: (method at: key) keys asOrderedCollection.
-
-			            recBlock value: (method at: key) ] ] ].
-
-	invocationGraph valuesDo: [ :dicInvo | 
-		dicInvo keysDo: [ :key | 
-			seen
-				at: key
-				ifAbsent: [ 
-				seen at: key put: (dicInvo at: key) keys asOrderedCollection ].
-			recBlock value: (dicInvo at: key) ] ].
+	            seen at: method ifAbsent: [ 
+		            seen
+			            at: method
+			            put: (self orderByPositionAMethodInvocations: method).
+		            (seen at: method) do: [ :child | recBlock value: child ] ] ].
 
 
 
-	"	seen associations do: [ :assoc | 
-		self haltIf: [ assoc value size > 3]. 
-		assoc value sort: [ :meth1 :meth2 | 
-			meth1 sourceAnchor endPos  < meth2 sourceAnchor endPos  ] ]."
+	recBlock value: aMethod.
+
 
 	^ seen
+]
+
+{ #category : #'as yet unclassified' }
+EGFEvolAnalysis >> computeCallflowModelWithMethods: methodSet andAnEntryPoint: entryPoint [
+
+	| model |
+	model := EGFCallflowModel new.
+	^ model initFromMethods: methodSet andAnEntryPoint: entryPoint
+]
+
+{ #category : #script }
+EGFEvolAnalysis >> computeCallflowOfUc: ucName andMethodName: mthName withCache: withCache [
+
+	"ucName := 'UcTiersComptableImpl'.
+	mthName := 'fournirListeTiersComptablesIHM'."
+
+	<script>
+	| evol ucs res meth |
+	evol := MooseModel root at: 1.
+	"get all class that is an UCs in eGF"
+	ucs := evol allClasses select: [ :c | 
+		       (c name beginsWith: 'uc' caseSensitive: false) and: [ 
+			       c name endsWith: 'impl' caseSensitive: false ] ].
+
+	res := Dictionary new.
+
+
+	"get methods of the UC named from parameters that are named named also from parameters"
+	meth := (ucs detect: [ :uc | uc name = ucName ]) methods detect: [ :m | 
+		        m name = mthName ].
+
+	res := self computeCallflowFromMethod: meth.
+
+	withCache ifTrue: [ 
+		callflowCache at: (self uc:ucName endpoint: mthName) put: meth -> res ].
+
+	^ self
+]
+
+{ #category : #'as yet unclassified' }
+EGFEvolAnalysis >> endpointNameFirstWords [
+
+	"return a dictionary of all the first word use in endpoint name. For instance :  'chargerSessionMEXTechnique' return 'charger'
+	The returned dictionnary also contains the number of occurences by word : charger -> 733"
+
+	| names |
+	names := Dictionary new.
+
+	(self retrieveAllServiceEndpoints reject: [ :assoc | 
+		 assoc value name = 'create' ]) do: [ :entry | 
+		| str |
+		str := entry value name
+			       copyFrom: 1
+			       to: (entry value name findFirst: [ :c | c isUppercase ]).
+		str isNotEmpty ifTrue: [ str := str copyFrom: 1 to: str size - 1 ].
+
+		names
+			at: str
+			ifPresent: [ names at: str put: (names at: str) + 1 ]
+			ifAbsentPut: [ 1 ] ].
+
+	^ names
+]
+
+{ #category : #'as yet unclassified' }
+EGFEvolAnalysis >> filterEndpointsBeginsWith: aString [
+
+	^ callflowCache associations select: [ :assoc | 
+		assoc value key name beginsWith: aString ]
 ]
 
 { #category : #initialization }
@@ -332,22 +217,22 @@ EGFEvolAnalysis >> initialize [
 EGFEvolAnalysis >> inspectionEGFvolAnalyzer [
 
 	<inspectorPresentationOrder: 1 title: 'EGFevo Services'>
-	| presenter classNameCompare methodCountSorter|
-	
+	| presenter classNameCompare methodCountSorter |
 	classNameCompare := [ :c1 :c2 | c1 name < c2 name ].
 	methodCountSorter := [ :c1 :c2 | 
 	                     c1 value value size threeWayCompareTo:
 		                     c2 value value size ].
-	
+
 	presenter := SpTablePresenter new
-		             addColumn: ((SpStringTableColumn
+		             addColumn: (((SpStringTableColumn
 				               title: 'Endpoints'
-				               evaluated: [ :assoc | assoc value key name ])
+				               evaluated: [ :assoc | assoc value key name ]) compareFunction: classNameCompare)
 				              width: 30;
 				              yourself);
 		             addColumn: ((SpStringTableColumn
-				              title: 'Methods'
-				              evaluated: [ :assoc | assoc value value size ]) sortFunction: methodCountSorter);
+				               title: 'Methods'
+				               evaluated: [ :assoc | assoc value value size ]) 
+				              sortFunction: methodCountSorter);
 		             items: callflowCache associations;
 		             beResizable;
 		             yourself.
@@ -358,67 +243,6 @@ EGFEvolAnalysis >> inspectionEGFvolAnalyzer [
 EGFEvolAnalysis >> inspectionEGFvolAnalyzerContext: aContext [
 
 	^ aContext active: callflowCache isNotEmpty.
-]
-
-{ #category : #script }
-EGFEvolAnalysis >> invocationGraphOfUc: ucName andMethodName: mthName [
-
-	self
-		deprecated: 'Use #nothing instead'
-		on: '27 July 2023'
-		in:
-		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
-
-	modelCache
-		at: ucName , mthName
-		ifPresent: [ modelCache at: ucName , mthName ]
-		ifAbsent: [ 
-			self
-				computeInvocationGraphOfUc: ucName
-				andMethodName: mthName
-				withCache: true ]
-]
-
-{ #category : #script }
-EGFEvolAnalysis >> invocationGraphOfUcTiersComptableImplWithFournirListeTiersComptablesIHM [
-
-	<script>
-	| evol ucs seen res block meth |
-	self
-		deprecated: 'Use #nothing instead'
-		on: '27 July 2023'
-		in:
-		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
-	evol := MooseModel root at: 1.
-	ucs := evol allClasses select: [ :c | 
-		       (c name beginsWith: 'uc' caseSensitive: false) and: [ 
-			       c name endsWith: 'impl' caseSensitive: false ] ].
-	seen := Dictionary new.
-	res := Dictionary new.
-
-	"block de recursion pour parcourir le model"
-	block := [ :m :outgoing | 
-	         m queryAllOutgoing select: #isInvocation thenDo: [ :i | 
-		         | method |
-		         method := i candidates anyOne.
-		         method isStub ifFalse: [ 
-			         seen
-				         at: method
-				         ifPresent: [ :out | outgoing at: method put: out ]
-				         ifAbsent: [ 
-					         | recurOut |
-					         recurOut := Dictionary new.
-					         outgoing at: method put: recurOut.
-					         seen at: method put: recurOut.
-					         block value: method value: recurOut ] ] ].
-	         outgoing ].
-
-
-	meth := (ucs detect: [ :uc | uc name = 'UcTiersComptableImpl' ])
-		        methods detect: [ :m | 
-		        m name = 'fournirListeTiersComptablesIHM' ].
-	res at: meth put: (block value: meth value: Dictionary new).
-	^ res
 ]
 
 { #category : #testing }
@@ -458,14 +282,14 @@ EGFEvolAnalysis >> orderByPositionAMethodInvocations: aMethod [
 ]
 
 { #category : #initialization }
-EGFEvolAnalysis >> resetCache [
+EGFEvolAnalysis >> resetCaches [
 
 	modelCache := Dictionary new.
-	callflowCache := Dictionary new. 
+	callflowCache := Dictionary new
 ]
 
 { #category : #'as yet unclassified' }
-EGFEvolAnalysis >> retrieveAllServiceEndPoint [
+EGFEvolAnalysis >> retrieveAllServiceEndpoints [
 
 	| endpoints |
 	endpoints := OrderedCollection new.
@@ -478,30 +302,6 @@ EGFEvolAnalysis >> retrieveAllServiceEndPoint [
 			endpoints add: ucClass -> m ] ].
 
 	^ endpoints
-]
-
-{ #category : #'instance creation' }
-EGFEvolAnalysis >> retrieveInvocationGraphFromMethod: aMethod [
-
-	"retrieve the invocation methods graph as a flatten dictionary"
-
-	| recBlock seen |
-	seen := Dictionary new.
-
-
-	recBlock := [ :method | "explore next invocation"
-	            seen at: method ifAbsent: [ 
-		            seen
-			            at: method
-			            put: (self orderByPositionAMethodInvocations: method).
-		            (seen at: method) do: [ :child | recBlock value: child ] ] ].
-
-
-
-	recBlock value: aMethod.
-
-
-	^ seen
 ]
 
 { #category : #'as yet unclassified' }
@@ -518,4 +318,18 @@ EGFEvolAnalysis >> searchForUCs [
 			       c name endsWith: 'impl' caseSensitive: false ] ].
 
 	^ ucs
+]
+
+{ #category : #'as yet unclassified' }
+EGFEvolAnalysis >> servicesModel [
+
+	"retrieve all the model already in cache"
+
+	^ EGFServicesModel initFrom: modelCache
+]
+
+{ #category : #'as yet unclassified' }
+EGFEvolAnalysis >> uc: aName endpoint: aMethodName [
+
+	^ aName , '>>' , aMethodName
 ]
