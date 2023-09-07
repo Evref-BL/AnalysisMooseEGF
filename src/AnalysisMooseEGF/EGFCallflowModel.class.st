@@ -254,6 +254,17 @@ EGFCallflowModel >> initialize [
 
 ]
 
+{ #category : #inspector }
+EGFCallflowModel >> inspectionEGFvolAnalyzer [
+
+	<inspectorPresentationOrder: 1 title: 'Word occurrences'>
+	| canvas shapes |
+	
+	canvas := (RSeGFCallflow new model: self; buildClassDependenciesCanvas ).
+	
+	^ canvas asPresenter
+]
+
 { #category : #accessing }
 EGFCallflowModel >> invocationGraph [
 
