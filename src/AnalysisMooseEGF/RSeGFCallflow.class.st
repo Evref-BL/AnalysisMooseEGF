@@ -6,7 +6,8 @@ Class {
 		'allMethods',
 		'allClasses',
 		'serviceTrace',
-		'eGFCallflowModel'
+		'eGFCallflowModel',
+		'otelTraces'
 	],
 	#category : #AnalysisMooseEGF
 }
@@ -105,21 +106,22 @@ RSeGFCallflow >> WIPNewClassDependenciesCanvas [
 RSeGFCallflow >> addHighlightEffect: aShape [
 
 	| high method arrow |
-	
 	method := aShape model.
 	arrow := RSShapeFactory arrowedLine
 		         withBorderAttachPoint;
 		         color: Color blue.
 	high := RSHighlightable new.
 	aShape @ high.
+	
 	high
 		when: RSHighlightEvent do: [ :evt | 
-			| invocMethods arrows |
+			| invokedMethods invokingMethods arrows |
 			"get the models, which are the invoked methods by our current method"
-			invocMethods := eGFCallflowModel methods at: method.
+			invokedMethods := eGFCallflowModel invokedMethodsOf: method.
+			invokingMethods := eGFCallflowModel invokingMethodsOf: method.
 
-			"build and collect each arrow we need to add to the canvas"
-			arrows := (invocMethods collect: [ :fromMet | 
+			"build and collect each arrow for outcoming invocation "
+			arrows := (invokedMethods collect: [ :fromMet | 
 					           | toMet |
 					           "get the shape that as the model met"
 					           toMet := allMethods shapeFromModel: fromMet.
@@ -130,6 +132,19 @@ RSeGFCallflow >> addHighlightEffect: aShape [
 								           from: evt shape;
 								           to: toMet ]
 						           ifFalse: [ nil ] ]) reject: #isNil.
+
+			"build and collect each arrow for incoming invocation "
+			arrows := arrows , ((invokingMethods collect: [ :toMet | 
+				            | fromMeth |
+				            fromMeth := allMethods shapeFromModel: toMet.
+				            fromMeth isNotNil
+					            ifTrue: [ "return an arrow from the shape fromMet (method) to the shape toMet. Because collect: need to return an object, we return nil if the shape does not exist"
+						            arrow copy
+							            from: fromMeth;
+							            to: evt shape;
+							            color: Color black ]
+					            ifFalse: [ nil ] ]) reject: #isNil).
+
 			canvas addAll: arrows.
 			"we store the arrows reference into a canvas properties"
 			canvas propertyAt: #arrows put: arrows ]
@@ -159,26 +174,61 @@ RSeGFCallflow >> applyFiltersOn: shapes [
 
 	"apply 3 commons filter on the shapes""color the border of method are only invoked by method on this graph"
 
-	(self
+	"(self
 		 filterShapes: shapes
 		 with: self filterShapesOnHavingForeignSenders) do: [ :shp | 
-		shp border: nil ].
+		shp border: nil ]."
 
 	"color the method that contains SQL references in their code"
-	(self filterShapes: shapes with: self filterShapesOnReferencingSQL) 
-		do: [ :shp | shp color: (Color red alpha: 0.4) ].
+
+	"	(self filterShapes: shapes with: self filterShapesOnReferencingSQL) 
+		do: [ :shp | shp color: (Color red alpha: 0.4) ]."
 
 	"color in deep red the sql element that explicitly call for sql statement"
-	(self filterShapes: shapes with: self filterShapesOnExecutingSQL) 
-		do: [ :shp | shp color: Color red ].
 
+	"(self filterShapes: shapes with: self filterShapesOnExecutingSQL) 
+		do: [ :shp | shp color: Color red ]."
 
-"	(self filterShapes: shapes with: self filterShapesOnUC) do: [ :shp | 
+	"	(self filterShapes: shapes with: self filterShapesOnUC) do: [ :shp | 
 		shp color: Color green ]."
 
+	"finally, remove methods that are get/set"
+	"^ self filterShapes: shapes with: self filterShapesOnGettterSetter" 
+	^ shapes 
+]
+
+{ #category : #'as yet unclassified' }
+RSeGFCallflow >> applyFiltersOn: shapes doing: filters [
+
+	"apply 3 commons filter on the shapes""color the border of method are only invoked by method on this graph"
+
+	(filters includes: #foreign) ifTrue: [ 
+		(self
+			 filterShapes: shapes
+			 with: self filterShapesOnHavingForeignSenders) do: [ :shp | 
+			shp border: nil ] ].
+
+
+	"color the method that contains SQL references in their code"
+	(filters includes: #referencingSQL) ifTrue: [ 
+		(self filterShapes: shapes with: self filterShapesOnReferencingSQL) 
+			do: [ :shp | shp color: (Color red alpha: 0.4) ] ].
+
+	"color in deep red the sql element that explicitly call for sql statement"
+
+	(filters includes: #executingSQL) ifTrue: [ 
+		(self filterShapes: shapes with: self filterShapesOnExecutingSQL) 
+			do: [ :shp | shp color: Color red ] ].
+
+	
+	"	(self filterShapes: shapes with: self filterShapesOnUC) do: [ :shp | 
+		shp color: Color green ]."
 
 	"finally, remove methods that are get/set"
-	^ self filterShapes: shapes with: self filterShapesOnGettterSetter
+	(filters includes: #getset) ifTrue: [ 
+		^ self filterShapes: shapes with: self filterShapesOnGettterSetter ].
+
+	^ shapes
 ]
 
 { #category : #'as yet unclassified' }
@@ -202,7 +252,7 @@ RSeGFCallflow >> buildClassDependenciesCanvas [
 		          methods := assoc value collect: [ :met | 
 			                     self buildMethodBox: met ].
 
-		          methods := self applyFiltersOn: methods.
+		          methods := self applyFiltersOn: methods doing: {#referencingSQL . #executingSQL}.
 
 		          allMethods addAll: methods.
 
@@ -288,12 +338,139 @@ RSeGFCallflow >> buildClassDependenciesCanvas [
 		charge: -10000.
 	canvas @ stepping.
 "
-	RSForceBasedLayout new
+	"RSForceBasedLayout new
 		length: 300;
 		charge: -10200;
 		nodes: canvas nodes;
 		edges: canvas edges;
-		on: canvas nodes.
+		on: canvas nodes."
+
+	RSGridLayout on: canvas nodes.
+
+
+
+	canvas @ RSCanvasController.
+
+	^ canvas
+]
+
+{ #category : #'as yet unclassified' }
+RSeGFCallflow >> buildClassDependenciesCanvas2 [
+
+	| ssShapes ssClassDep shapes layout stepping |
+	allMethods := RSGroup new.
+	allClasses := RSGroup new.
+
+	ssShapes := eGFCallflowModel classGroup copy.
+	ssClassDep := eGFCallflowModel classDependencies copy.
+
+	"canvas propertyAt: #arrows put: arrows 
+(canvas propertyAt: #arrows ifAbsent: [ #(  ) ]) do: #remove ]"
+
+	canvas := RSCanvas new.
+
+	"canvas showEncompassingRectangles."
+	shapes := ssShapes associations collect: [ :assoc | 
+		          | group label composite methods class |
+		          group := RSGroup new.
+
+		          methods := assoc value collect: [ :met | 
+			                     self buildMethodBox: met ].
+
+		          methods := self applyFiltersOn: methods doing: {}.
+
+		          allMethods addAll: methods.
+
+		          RSGridLayout on: methods.
+		          "composite that regroup methods of an Class"
+		          composite := RSComposite new
+			                       color: (Color lightGray alpha: 0.4);
+			                       shapes: methods;
+			                       yourself.
+		          composite extent: composite extent + 100.
+		          "label of class group"
+		          label := RSLabel new
+			                   text: assoc key name;
+			                   yourself.
+		          "create the group for one class and its method"
+		          group
+			          add: label;
+			          add: composite.
+		          RSVerticalLineLayout new alignCenter on: group.
+		          class := RSComposite new
+			                   shapes: group;
+			                   model: assoc key;
+			                   draggable;
+			                   popup;
+			                   yourself.
+		          allClasses add: class.
+		          class ].
+
+	canvas addAll: shapes.
+
+
+	self heatmapColoring.
+
+	"self drawTraceEdgeFrom: serviceTrace."
+
+
+	(RSLineBuilder arrowedLine
+		 withBorderAttachPoint;
+		 color: (Color gray alpha: 0.2);
+		 canvas: canvas;
+		 beDirectional;
+		 connectToAll: [ :class | 
+			 (ssClassDep at: class) asOrderedCollection ]) pushBack.
+
+
+
+	"LAYERS"
+
+
+	"		layer := RSGroup new
+		         addAll:
+			         (self
+				          filterShapes: allClasses
+				          with: self filterShapesOnUCLayer);
+		         add: (RSLabel new text: 'Layer UC');
+		         yourself.
+	RSHorizontalLineLayout new alignMiddle on: layer.
+	canvas add: (RSComposite new
+			 color: (Color green alpha: 0.4);
+			 shapes: layer;
+			 yourself)."
+
+	(self filterShapes: allClasses with: self filterShapesOnUCLayer) do: [ 
+		:shp | shp color: Color green ].
+
+	(self filterShapes: allClasses with: self filterShapesOnServiceLayer) 
+		do: [ :shp | shp color: Color yellow ].
+
+	(self filterShapes: allClasses with: self filterShapesOnDAOLayer) 
+		do: [ :shp | shp color: Color orange ].
+
+
+
+
+	"RSHorizontalTreeLayout on: shapes."
+
+
+	"RSClusterTreeLayout on: shapes."
+
+	"	stepping := RSForceLayoutSteppingInteraction new.
+	stepping layout
+		length: 150;
+		charge: -10000.
+	canvas @ stepping.
+"
+	"RSForceBasedLayout new
+		length: 300;
+		charge: -10200;
+		nodes: canvas nodes;
+		edges: canvas edges;
+		on: canvas nodes."
+
+	RSGridLayout on: canvas nodes.
 
 
 
@@ -783,6 +960,26 @@ RSeGFCallflow >> hasSubString: txt containing: keywords [
 	^ res isNotEmpty
 ]
 
+{ #category : #'as yet unclassified' }
+RSeGFCallflow >> heatmapColoring [
+
+	| colorPalette dic |
+	dic := Dictionary new.
+	colorPalette := NSScale linear
+		                range: { 
+				                Color white.
+				                Color red };
+		                domain: { 0. 50 };
+		                yourself.
+
+	otelTraces traces valuesDo: [ :t | 
+		t famixMethodCandidates do: [ :mth | 
+			| shape lvl |
+			shape := allMethods shapesFromModel: mth.
+			lvl := dic at: mth ifAbsentPut: [ 0 ].
+			shape color: (colorPalette scale: (dic at: mth put: lvl + 1)) ] ]
+]
+
 { #category : #filtering }
 RSeGFCallflow >> highlightClassesOfTrace: aTraceAsOrderedCollect [
 
@@ -814,7 +1011,14 @@ RSeGFCallflow >> model: anEGFCallflowModel [
 ]
 
 { #category : #setter }
-RSeGFCallflow >> serviceTrace: aCollection [ 
+RSeGFCallflow >> otelTraces: aCollection [
+
+	otelTraces := aCollection
+]
+
+{ #category : #setter }
+RSeGFCallflow >> serviceTrace: aCollection [
+
 	serviceTrace := aCollection
 ]
 

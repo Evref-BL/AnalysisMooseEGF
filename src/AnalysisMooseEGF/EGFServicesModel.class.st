@@ -37,7 +37,7 @@ EGFServicesModel >> computeServicesDependencies [
 			| model2 |
 			model2 := a2 value.
 			self haltIf: index > 100.
-			((model1 = model2) not and: [ model1 hasDependenciesWith: model2 ]) 
+			((model1 = model2) not and: [ model1 hasCommonMethodsWithModel: model2 ]) 
 				ifTrue: [ dep add: model1 -> model2 ] ] ].
 
 	^ dep

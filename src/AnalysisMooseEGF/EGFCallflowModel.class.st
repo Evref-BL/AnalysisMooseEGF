@@ -11,6 +11,122 @@ Class {
 	#category : #AnalysisMooseEGF
 }
 
+{ #category : #'as yet unclassified' }
+EGFCallflowModel class >> exportToOtelJavaAgent: methods [
+
+	| pkgs strPkgs strMthds |
+	"create a string to paste inside your java code to configure the OTEL agent"
+	pkgs := Set new.
+	strPkgs := ''.
+	strMthds := ''.
+	strMthds := methods do: [ :m | 
+		            | s |
+		            s := m mooseNameWithDotsNoParenthesis.
+		            s := s
+			                 copyFrom: 1
+			                 to: (s lastIndexOf: $. ifAbsent: s size) - 1.
+		            pkgs add: s ].
+	pkgs := pkgs asOrderedCollection.
+	"construct the class condition"
+	strPkgs := 'return named("' , pkgs first , '")'.
+	pkgs
+		from: 2
+		to: pkgs size
+		do: [ :pkg | strPkgs := strPkgs , '.or(named("' , pkg , '"))' ].
+	strPkgs := strPkgs , ';'.
+
+	strMthds := ' transformer.applyAdviceToMethod(isMethod().and(named("' , methods first name , '")'.
+	methods
+		from: 2
+		to: methods size
+		do: [ :m | strMthds := strMthds , '.or(named("' , m name , '"))' ].
+	strMthds := strMthds
+	            , '), this.getClass().getName() + "$TODO-ADVICEENAME");'.
+
+
+	^ strPkgs , String cr , String cr, String cr , strMthds
+]
+
+{ #category : #'as yet unclassified' }
+EGFCallflowModel class >> exportToOtelJavaAgentV2: methods [
+
+	| pkgs strPkgs strMthds mths |
+	"create a string to paste inside your java code to configure the OTEL agent"
+	pkgs := Set new.
+	mths := Set new.
+	strPkgs := ''.
+	strMthds := ''.
+	methods do: [ :m | 
+		| s |
+		s := m mooseNameWithDotsNoParenthesis.
+		s := s copyFrom: 1 to: (s lastIndexOf: $. ifAbsent: s size) - 1.
+		pkgs add: s.
+		mths add: m name ].
+	pkgs := pkgs asOrderedCollection.
+	"construct the class condition"
+	strPkgs := 'return namedOneOf("' , pkgs first , '"'.
+	pkgs
+		from: 2
+		to: pkgs size
+		do: [ :pkg | strPkgs := strPkgs , ',"' , pkg , '"' ].
+	strPkgs := strPkgs , ');'.
+
+
+	mths := mths asOrderedCollection.
+
+	strMthds := ' transformer.applyAdviceToMethod(isMethod().and(namedOneOf("'
+	            , mths first , '"'.
+	mths
+		from: 2
+		to: mths size
+		do: [ :m | strMthds := strMthds , ', "' , m , '"' ].
+	strMthds := strMthds
+	            , ')), this.getClass().getName() + "$TODO-ADVICEENAME");'.
+
+
+	^ strPkgs , String cr , String cr , String cr , strMthds
+]
+
+{ #category : #'as yet unclassified' }
+EGFCallflowModel class >> exportToOtelJavaAgentV3: methods [
+
+	| pkgs strPkgs strMthds mths |
+	"create a string to paste inside your java code to configure the OTEL agent"
+	pkgs := Set new.
+	mths := Set new.
+	strPkgs := ''.
+	strMthds := ''.
+	methods do: [ :m | 
+		| s |
+		s := m mooseNameWithDotsNoParenthesis.
+		s := s copyFrom: 1 to: (s lastIndexOf: $. ifAbsent: s size) - 1.
+		pkgs add: s.
+		mths add: m mooseNameWithDotsNoParenthesis ].
+	pkgs := pkgs asOrderedCollection.
+	"construct the class condition"
+	strPkgs := 'return namedOneOf("' , pkgs first , '"'.
+	pkgs
+		from: 2
+		to: pkgs size
+		do: [ :pkg | strPkgs := strPkgs , ',"' , pkg , '"' ].
+	strPkgs := strPkgs , ');'.
+
+
+	mths := mths asOrderedCollection.
+
+	strMthds := ' transformer.applyAdviceToMethod(isMethod().and(namedOneOf("'
+	            , mths first , '"'.
+	mths
+		from: 2
+		to: mths size
+		do: [ :m | strMthds := strMthds , ', "' , m , '"' ].
+	strMthds := strMthds
+	            , ')), this.getClass().getName() + "$TODO-ADVICEENAME");'.
+
+
+	^ strPkgs , String cr , String cr , String cr , strMthds
+]
+
 { #category : #'instance creation' }
 EGFCallflowModel class >> newFrom: invocationGraph [
 
@@ -177,8 +293,19 @@ EGFCallflowModel >> flattenMethods [
 	^ flattenMethods
 ]
 
+{ #category : #'as yet unclassified' }
+EGFCallflowModel >> getterMethods [
+
+	"retrieve the methods that have no invokation"
+
+	| leafs |
+	leafs := OrderedCollection new.
+	flattenMethods keysDo: [ :method | (method name beginsWith: 'get') ifTrue: [ leafs add: method ] ].
+	^ leafs
+]
+
 { #category : #'computing - dependencies' }
-EGFCallflowModel >> hasDependenciesWith: anEGFCallflowModel [ 
+EGFCallflowModel >> hasCommonMethodsWithModel: anEGFCallflowModel [ 
 	
 	
 	^ (self flattenMethods keys intersection: (anEGFCallflowModel flattenMethods keys)) size > 0
@@ -288,8 +415,74 @@ EGFCallflowModel >> invocationGraph: aCollection [
 	invocationGraph := aCollection
 ]
 
+{ #category : #'as yet unclassified' }
+EGFCallflowModel >> invokedMethodsOf: aMethod [
+	"return the methods that are invoked by the parameter aMethod"
+	
+	^ self methods at: aMethod
+]
+
+{ #category : #'as yet unclassified' }
+EGFCallflowModel >> invokingMethodsOf: aMethod [
+
+	"return the methods that invoke the method in parameter (aMethod)"
+
+	^ (self methods associations collect: [ :assoc | 
+		   | m |
+		   m := nil.
+			
+		   (assoc value includes: aMethod) ifTrue: [ m := assoc key ].
+		   m ]) reject: #isNil.
+]
+
+{ #category : #'as yet unclassified' }
+EGFCallflowModel >> leafMethods [
+
+	"retrieve the methods that have no invokation"
+
+	| leafs |
+	leafs := OrderedCollection new.
+	flattenMethods associations do: [ :assoc | 
+		assoc value isEmpty ifTrue: [ leafs add: assoc key ] ].
+	^ leafs
+]
+
 { #category : #accessing }
 EGFCallflowModel >> methods [
 
 	^ self flattenMethods
+]
+
+{ #category : #'as yet unclassified' }
+EGFCallflowModel >> methodsNamed: aString [
+
+	"return the methods are named like so"
+
+	^ self methods keys select: [ :m | 
+		  | methodName bool |
+		  methodName := m mooseNameWithDotsNoParenthesis, '('.
+		  methodName size >= aString size
+			  ifTrue: [ bool := methodName includesSubstring: aString ]
+			  ifFalse: [ bool := aString includesSubstring: methodName ].
+		  bool ]
+]
+
+{ #category : #'as yet unclassified' }
+EGFCallflowModel >> methodsNamed: aString withNbParameters: n [
+
+	"return the methods are named like so"
+	1 halt.
+	^ (self methodsNamed: aString) select: [ :m | 
+		    m numberOfParameters = n ]
+]
+
+{ #category : #'as yet unclassified' }
+EGFCallflowModel >> setterMethods [
+
+	"retrieve the methods that have no invokation"
+
+	| leafs |
+	leafs := OrderedCollection new.
+	flattenMethods keysDo: [ :method | (method name beginsWith: 'set') ifTrue: [ leafs add: method ] ].
+	^ leafs
 ]
