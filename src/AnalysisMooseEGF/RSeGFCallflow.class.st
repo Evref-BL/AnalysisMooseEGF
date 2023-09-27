@@ -7,7 +7,8 @@ Class {
 		'allClasses',
 		'serviceTrace',
 		'eGFCallflowModel',
-		'otelTraces'
+		'otelTraces',
+		'activeFilters'
 	],
 	#category : #AnalysisMooseEGF
 }
@@ -102,6 +103,22 @@ RSeGFCallflow >> WIPNewClassDependenciesCanvas [
 	^ canvas
 ]
 
+{ #category : #'as yet unclassified' }
+RSeGFCallflow >> actionForGetterSetter: shapes [
+
+	(activeFilters at: #getset)
+		ifTrue: [ 
+			shapes do: [ :shape | 
+				shape
+					color: Color transparent;
+					removeInteractionIfPresent: RSDraggable ] ]
+		ifFalse: [ 
+			shapes do: [ :shape | 
+				self defaultRSBox: shape
+					 ] ].
+	canvas signalUpdate
+]
+
 { #category : #adding }
 RSeGFCallflow >> addHighlightEffect: aShape [
 
@@ -174,33 +191,43 @@ RSeGFCallflow >> applyFiltersOn: shapes [
 
 	"apply 3 commons filter on the shapes""color the border of method are only invoked by method on this graph"
 
-	"(self
-		 filterShapes: shapes
-		 with: self filterShapesOnHavingForeignSenders) do: [ :shp | 
-		shp border: nil ]."
+	self flag: 'declenche avec l''active filter'.
+
+	(activeFilters at: #foreign) ifTrue: [ 
+		(self
+			 filterShapes: shapes
+			 with: self filterShapesOnHavingForeignSenders) do: [ :shp | 
+			shp border: nil ] ].
+
 
 	"color the method that contains SQL references in their code"
-
-	"	(self filterShapes: shapes with: self filterShapesOnReferencingSQL) 
-		do: [ :shp | shp color: (Color red alpha: 0.4) ]."
+	(activeFilters at: #referencingSQL) ifTrue: [ 
+		(self filterShapes: shapes with: self filterShapesOnReferencingSQL) 
+			do: [ :shp | shp color: (Color red alpha: 0.4) ] ].
 
 	"color in deep red the sql element that explicitly call for sql statement"
 
-	"(self filterShapes: shapes with: self filterShapesOnExecutingSQL) 
-		do: [ :shp | shp color: Color red ]."
+	(activeFilters at: #executingSQL) ifTrue: [ 
+		(self filterShapes: shapes with: self filterShapesOnExecutingSQL) 
+			do: [ :shp | shp color: Color red ] ].
+
 
 	"	(self filterShapes: shapes with: self filterShapesOnUC) do: [ :shp | 
 		shp color: Color green ]."
 
 	"finally, remove methods that are get/set"
-	"^ self filterShapes: shapes with: self filterShapesOnGettterSetter" 
-	^ shapes 
+	(activeFilters at: #getset) ifTrue: [ 
+		^ self filterShapes: shapes with: self filterShapesOnGettterSetter ].
+
+	^ shapes
 ]
 
 { #category : #'as yet unclassified' }
 RSeGFCallflow >> applyFiltersOn: shapes doing: filters [
 
 	"apply 3 commons filter on the shapes""color the border of method are only invoked by method on this graph"
+
+	self flag: 'declenche avec l''active filter'.
 
 	(filters includes: #foreign) ifTrue: [ 
 		(self
@@ -220,7 +247,7 @@ RSeGFCallflow >> applyFiltersOn: shapes doing: filters [
 		(self filterShapes: shapes with: self filterShapesOnExecutingSQL) 
 			do: [ :shp | shp color: Color red ] ].
 
-	
+
 	"	(self filterShapes: shapes with: self filterShapesOnUC) do: [ :shp | 
 		shp color: Color green ]."
 
@@ -252,7 +279,10 @@ RSeGFCallflow >> buildClassDependenciesCanvas [
 		          methods := assoc value collect: [ :met | 
 			                     self buildMethodBox: met ].
 
-		          methods := self applyFiltersOn: methods doing: {#referencingSQL . #executingSQL}.
+					self toggled: #referencingSQL; toggled: #executingSQL.
+		          methods := self
+			                     applyFiltersOn: methods.
+			                    
 
 		          allMethods addAll: methods.
 
@@ -345,6 +375,8 @@ RSeGFCallflow >> buildClassDependenciesCanvas [
 		edges: canvas edges;
 		on: canvas nodes."
 
+	canvas addShape: self buildOptionMenu.
+
 	RSGridLayout on: canvas nodes.
 
 
@@ -377,7 +409,7 @@ RSeGFCallflow >> buildClassDependenciesCanvas2 [
 		          methods := assoc value collect: [ :met | 
 			                     self buildMethodBox: met ].
 
-		          methods := self applyFiltersOn: methods doing: {}.
+		          methods := self applyFiltersOn: methods.
 
 		          allMethods addAll: methods.
 
@@ -469,6 +501,8 @@ RSeGFCallflow >> buildClassDependenciesCanvas2 [
 		nodes: canvas nodes;
 		edges: canvas edges;
 		on: canvas nodes."
+
+canvas addShape: self buildOptionMenu.
 
 	RSGridLayout on: canvas nodes.
 
@@ -613,24 +647,65 @@ canvas @ stepping."
 { #category : #'as yet unclassified' }
 RSeGFCallflow >> buildMethodBox: method [
 
-	| srcCode shape  |
+	| srcCode shape |
 	srcCode := method sourceText.
 
 
 	shape := RSBox new
 		         model: method;
 		         height: method sourceText lines size + 10;
-		         width: method cyclomaticComplexity + 10;
-		         draggable;
-		         popup;
-		         border: (RSBorder new color: 'black');
-		         color: Color blue translucent.
+		         width: method cyclomaticComplexity + 10.
 	shape when: RSMouseClick do: [ :evt | " 1 halt." ] for: self.
-
-
+	self defaultRSBox: shape.
 	self addHighlightEffect: shape.
 
 	^ shape
+]
+
+{ #category : #'as yet unclassified' }
+RSeGFCallflow >> buildOptionMenu [
+
+	| menu buttons |
+	buttons := RSGroup new.
+
+	"shapes: nil;"
+	"model: assoc key;"
+
+	buttons add: (RSLabel new
+			 color: Color black;
+			 model: 'hide/show Getter Setter';
+			 when: RSMouseClick do: [ :evt | 
+				 | getsets |
+				 getsets := self
+					            filterShapes: allMethods
+					            with: self filterShapesOnGettterSetter.
+				self  toggled: #getset.
+				 self actionForGetterSetter: getsets ]
+			 for: self;
+			 yourself).
+
+	buttons add: (RSLabel new
+			 color: Color black;
+			 model: 'Referencing SQL').
+
+
+	buttons add: (RSLabel new
+			 color: Color black;
+			 model: 'Executing SQL').
+
+
+
+	buttons first.
+
+	RSVerticalLineLayout on: buttons.
+
+	menu := buttons asShape
+		        isFixed: true;
+		        color: Color yellow;
+		        yourself.
+	menu translateBy: menu extent / 2.
+
+	^ menu
 ]
 
 { #category : #accessing }
@@ -766,6 +841,19 @@ canvas @ stepping."
 ]
 
 { #category : #'as yet unclassified' }
+RSeGFCallflow >> defaultRSBox: rsBox [
+
+	^ rsBox
+		  "height: rsBox model sourceText lines size + 10;
+		  width: rsBox model cyclomaticComplexity + 10;"
+		  draggable;
+		  popup;
+		  border: (RSBorder new color: 'black');
+		  color: Color blue translucent;
+		  yourself
+]
+
+{ #category : #'as yet unclassified' }
 RSeGFCallflow >> drawTraceEdgeFrom: aTraceAsOrderedCollection [
 
 	| trace traceModel |
@@ -873,8 +961,8 @@ RSeGFCallflow >> filterShapesOnGettterSetter [
 	  | method |
 	  method := elmt model.
 	  ((method name beginsWith: 'get') or: [ 
-		  (method name beginsWith: 'set') or: [ 
-			  method name beginsWith: 'is' ] ]) not ]
+		   (method name beginsWith: 'set') or: [ 
+			   method name beginsWith: 'is' ] ]) ]
 ]
 
 { #category : #filtering }
@@ -1000,8 +1088,15 @@ RSeGFCallflow >> highlightClassesOfTrace: aTraceAsOrderedCollect [
 ]
 
 { #category : #initialization }
-RSeGFCallflow >> initialize [ 
-	serviceTrace := OrderedCollection new. 
+RSeGFCallflow >> initialize [
+
+	serviceTrace := OrderedCollection new.
+	activeFilters := Dictionary
+		                 newFrom: { 
+				                 (#foreign -> false).
+				                 (#referencingSQL -> false).
+				                 (#executingSQL -> false).
+				                 (#getset -> false) }.
 ]
 
 { #category : #testing }
@@ -1028,4 +1123,9 @@ RSeGFCallflow >> sqlKeywords [
 	^ { 'SELECT'. 'FROM'. 'WHERE'. 'INSERT'. 'UPDATE'.
 	  'DELETE'. 'JOIN'. 'GROUP BY'. 'ORDER BY'. 'CREATE'.
 	  'ALTER'. 'DROP '. 'SQL'. 'IS NULL' }
+]
+
+{ #category : #'as yet unclassified' }
+RSeGFCallflow >> toggled: key [ 
+	activeFilters at: key put: (activeFilters at: key) not
 ]
