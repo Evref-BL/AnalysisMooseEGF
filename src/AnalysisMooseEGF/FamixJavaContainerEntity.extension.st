@@ -8,7 +8,16 @@ FamixJavaContainerEntity >> mooseNameWithDotsNoParenthesis [
 	res := res
 		       copyFrom: 1
 		       to: (res indexOfAnyOf: { $( } startingAt: 1) - 1.
-	res replaceAllRegex: '\$' with: '.'.
+
+	
+	1 to: res size do: [ :i | 
+		
+		(res at: i) = '$' ifTrue: [ res at:i put: '.' ].  
+		
+		 ].
+	
+	"res replaceAllRegex: '\$' with: '.'."
+	
 	^ res
 ]
 

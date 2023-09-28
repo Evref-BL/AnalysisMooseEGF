@@ -13,7 +13,7 @@ Class {
 	#category : #AnalysisMooseEGF
 }
 
-{ #category : #'as yet unclassified' }
+{ #category : #'build canvas' }
 RSeGFCallflow >> WIPNewClassDependenciesCanvas [
 
 	"comment stating purpose of instance-side method"
@@ -103,19 +103,37 @@ RSeGFCallflow >> WIPNewClassDependenciesCanvas [
 	^ canvas
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #action }
+RSeGFCallflow >> actionForExecutingSQL: shapes [
+	"color in deep red the sql element that explicitly call for sql statement"
+	(activeFilters at: #executingSQL)
+		ifTrue: [ shapes do: [ :shp | shp color: Color red ] ]
+		ifFalse: [ shapes do: [ :shape | self defaultRSBox: shape ] ].
+	canvas signalUpdate
+]
+
+{ #category : #action }
 RSeGFCallflow >> actionForGetterSetter: shapes [
+
+	"finally, remove methods that are get/set"
 
 	(activeFilters at: #getset)
 		ifTrue: [ 
 			shapes do: [ :shape | 
 				shape
 					color: Color transparent;
+					border: (RSBorder new color: (Color black alpha: 0.1));
 					removeInteractionIfPresent: RSDraggable ] ]
-		ifFalse: [ 
-			shapes do: [ :shape | 
-				self defaultRSBox: shape
-					 ] ].
+		ifFalse: [ shapes do: [ :shape | self defaultRSBox: shape ] ].
+	canvas signalUpdate
+]
+
+{ #category : #action }
+RSeGFCallflow >> actionForReferencingSQL: shapes [
+"color the method that contains SQL references in their code"	
+	(activeFilters at: #referencingSQL)
+		ifTrue: [ shapes do: [ :shp | shp color: (Color red alpha: 0.4) ] ]
+		ifFalse: [ shapes do: [ :shape | self defaultRSBox: shape ] ].
 	canvas signalUpdate
 ]
 
@@ -186,13 +204,11 @@ RSeGFCallflow >> allClasses: anObject [
 	allClasses := anObject
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #filtering }
 RSeGFCallflow >> applyFiltersOn: shapes [
 
-	"apply 3 commons filter on the shapes""color the border of method are only invoked by method on this graph"
-
-	self flag: 'declenche avec l''active filter'.
-
+	"apply filters on the shapes"
+	"color the border of method are only invoked by method on this graph"
 	(activeFilters at: #foreign) ifTrue: [ 
 		(self
 			 filterShapes: shapes
@@ -200,16 +216,12 @@ RSeGFCallflow >> applyFiltersOn: shapes [
 			shp border: nil ] ].
 
 
-	"color the method that contains SQL references in their code"
-	(activeFilters at: #referencingSQL) ifTrue: [ 
-		(self filterShapes: shapes with: self filterShapesOnReferencingSQL) 
-			do: [ :shp | shp color: (Color red alpha: 0.4) ] ].
+	
+		self actionForReferencingSQL: (self filterShapes: shapes with: self filterShapesOnReferencingSQL).
 
-	"color in deep red the sql element that explicitly call for sql statement"
 
-	(activeFilters at: #executingSQL) ifTrue: [ 
-		(self filterShapes: shapes with: self filterShapesOnExecutingSQL) 
-			do: [ :shp | shp color: Color red ] ].
+	
+	self actionForExecutingSQL: (self filterShapes: shapes with: self filterShapesOnExecutingSQL) .
 
 
 	"	(self filterShapes: shapes with: self filterShapesOnUC) do: [ :shp | 
@@ -222,46 +234,10 @@ RSeGFCallflow >> applyFiltersOn: shapes [
 	^ shapes
 ]
 
-{ #category : #'as yet unclassified' }
-RSeGFCallflow >> applyFiltersOn: shapes doing: filters [
-
-	"apply 3 commons filter on the shapes""color the border of method are only invoked by method on this graph"
-
-	self flag: 'declenche avec l''active filter'.
-
-	(filters includes: #foreign) ifTrue: [ 
-		(self
-			 filterShapes: shapes
-			 with: self filterShapesOnHavingForeignSenders) do: [ :shp | 
-			shp border: nil ] ].
-
-
-	"color the method that contains SQL references in their code"
-	(filters includes: #referencingSQL) ifTrue: [ 
-		(self filterShapes: shapes with: self filterShapesOnReferencingSQL) 
-			do: [ :shp | shp color: (Color red alpha: 0.4) ] ].
-
-	"color in deep red the sql element that explicitly call for sql statement"
-
-	(filters includes: #executingSQL) ifTrue: [ 
-		(self filterShapes: shapes with: self filterShapesOnExecutingSQL) 
-			do: [ :shp | shp color: Color red ] ].
-
-
-	"	(self filterShapes: shapes with: self filterShapesOnUC) do: [ :shp | 
-		shp color: Color green ]."
-
-	"finally, remove methods that are get/set"
-	(filters includes: #getset) ifTrue: [ 
-		^ self filterShapes: shapes with: self filterShapesOnGettterSetter ].
-
-	^ shapes
-]
-
-{ #category : #'as yet unclassified' }
+{ #category : #'build canvas' }
 RSeGFCallflow >> buildClassDependenciesCanvas [
 
-	| ssShapes ssClassDep shapes layout stepping |
+	| ssShapes ssClassDep shapes  |
 	allMethods := RSGroup new.
 	allClasses := RSGroup new.
 
@@ -279,10 +255,11 @@ RSeGFCallflow >> buildClassDependenciesCanvas [
 		          methods := assoc value collect: [ :met | 
 			                     self buildMethodBox: met ].
 
-					self toggled: #referencingSQL; toggled: #executingSQL.
-		          methods := self
-			                     applyFiltersOn: methods.
-			                    
+		          self
+			          toggled: #referencingSQL;
+			          toggled: #executingSQL.
+		          methods := self applyFiltersOn: methods.
+
 
 		          allMethods addAll: methods.
 
@@ -386,10 +363,10 @@ RSeGFCallflow >> buildClassDependenciesCanvas [
 	^ canvas
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #'build canvas' }
 RSeGFCallflow >> buildClassDependenciesCanvas2 [
 
-	| ssShapes ssClassDep shapes layout stepping |
+	| ssShapes ssClassDep shapes |
 	allMethods := RSGroup new.
 	allClasses := RSGroup new.
 
@@ -441,7 +418,7 @@ RSeGFCallflow >> buildClassDependenciesCanvas2 [
 	canvas addAll: shapes.
 
 
-	self heatmapColoring.
+
 
 	"self drawTraceEdgeFrom: serviceTrace."
 
@@ -502,7 +479,8 @@ RSeGFCallflow >> buildClassDependenciesCanvas2 [
 		edges: canvas edges;
 		on: canvas nodes."
 
-canvas addShape: self buildOptionMenu.
+	self heatmapColoring.
+	canvas addShape: self buildOptionMenu.
 
 	RSGridLayout on: canvas nodes.
 
@@ -513,7 +491,7 @@ canvas addShape: self buildOptionMenu.
 	^ canvas
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #'build canvas' }
 RSeGFCallflow >> buildEdgeBundlingCanvas [
 
 	| methods shapes |
@@ -567,7 +545,7 @@ RSeGFCallflow >> buildEdgeBundlingCanvas [
 	^ canvas
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #'build canvas' }
 RSeGFCallflow >> buildInvocationGraphCanvas [
 
 	| ssShapes shapes labeled start legend |
@@ -634,7 +612,7 @@ canvas @ stepping."
 	canvas @ RSCanvasController.
 	canvas zoomToFit.
 
-	legend := self createLegend:
+	legend := self buildLegend:
 		          { 'rectangle = methods invoked from the service endpoint'.
 		          'rectangle size = height: method cyclomatic Complexity; width: method line of codes'.
 		          'rectangle color = red: contain SPL; blue: based color'.
@@ -644,7 +622,22 @@ canvas @ stepping."
 	^ canvas
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #'build shapes' }
+RSeGFCallflow >> buildLegend: aStringArray [
+
+	| legend |
+	legend := RSLegend new container: canvas.
+	aStringArray do: [ :aString | legend text: aString ].
+
+	legend legendDo: [ :l | 
+		l
+			withBorder;
+			padding: 25 ].
+	legend build.
+	^ legend
+]
+
+{ #category : #'build shapes' }
 RSeGFCallflow >> buildMethodBox: method [
 
 	| srcCode shape |
@@ -662,46 +655,72 @@ RSeGFCallflow >> buildMethodBox: method [
 	^ shape
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #'build shapes' }
 RSeGFCallflow >> buildOptionMenu [
 
 	| menu buttons |
 	buttons := RSGroup new.
 
-	"shapes: nil;"
-	"model: assoc key;"
+	buttons add: (RSLabel new
+			 color: Color black;
+			 model: 'ACTION MENU: ').
 
 	buttons add: (RSLabel new
 			 color: Color black;
-			 model: 'hide/show Getter Setter';
+			 model: '  • Getter Setter ';
 			 when: RSMouseClick do: [ :evt | 
-				 | getsets |
-				 getsets := self
-					            filterShapes: allMethods
-					            with: self filterShapesOnGettterSetter.
-				self  toggled: #getset.
-				 self actionForGetterSetter: getsets ]
+				 | shapes |
+				 shapes := self
+					           filterShapes: allMethods
+					           with: self filterShapesOnGettterSetter.
+				 self toggled: #getset.
+				 self actionForGetterSetter: shapes ]
 			 for: self;
 			 yourself).
 
 	buttons add: (RSLabel new
 			 color: Color black;
-			 model: 'Referencing SQL').
-
+			 model: '   • Executing SQL';
+			 when: RSMouseClick do: [ :evt | 
+				 | shapes |
+				 shapes := self
+					           filterShapes: allMethods
+					           with: self filterShapesOnExecutingSQL.
+				 self toggled: #executingSQL.
+				 self actionForExecutingSQL: shapes ]
+			 for: self;
+			 yourself).
 
 	buttons add: (RSLabel new
 			 color: Color black;
-			 model: 'Executing SQL').
+			 model: '   • Referencing SQL ';
+			 when: RSMouseClick do: [ :evt | 
+				 | shapes |
+				 shapes := self
+					           filterShapes: allMethods
+					           with: self filterShapesOnReferencingSQL.
+				 self toggled: #referencingSQL.
+				 self actionForReferencingSQL: shapes ]
+			 for: self;
+			 yourself).
 
-
-
-	buttons first.
+	"force remove edges draw by highlight "
+	buttons add: (RSLabel new
+			 color: Color black;
+			 model: '   • Reset ';
+			 when: RSMouseClick do: [ :evt | 
+				 allMethods do: [ :s | self defaultRSBox: s ].
+				 (canvas propertyAt: #arrows ifAbsent: [ #(  ) ]) do: #remove.
+				canvas signalUpdate ]
+			 for: self;
+			 yourself).
 
 	RSVerticalLineLayout on: buttons.
 
 	menu := buttons asShape
 		        isFixed: true;
 		        color: Color yellow;
+		        border: (RSBorder new color: Color black translucent);
 		        yourself.
 	menu translateBy: menu extent / 2.
 
@@ -734,22 +753,7 @@ RSeGFCallflow >> collectClassShapeFromTrace: aTraceAsOrderedCollection [
 				trace add: t -> shape ] ] ]
 ]
 
-{ #category : #'as yet unclassified' }
-RSeGFCallflow >> createLegend: aStringArray [
-
-	| legend |
-	legend := RSLegend new container: canvas.
-	aStringArray do: [ :aString | legend text: aString ].
-
-	legend legendDo: [ :l | 
-		l
-			withBorder;
-			padding: 25 ].
-	legend build.
-	^ legend
-]
-
-{ #category : #'as yet unclassified' }
+{ #category : #'build canvas' }
 RSeGFCallflow >> debugCanvasBuilding [
 
 	| ssShapes shapes labeled start legend |
@@ -830,7 +834,7 @@ canvas @ stepping."
 	canvas @ RSCanvasController.
 	canvas zoomToFit.
 
-	legend := self createLegend:
+	legend := self buildLegend:
 		          { 'rectangle = methods invoked from the service endpoint'.
 		          'rectangle size = height: method cyclomatic Complexity; width: method line of codes'.
 		          'rectangle color = red: contain SPL; blue: based color'.
@@ -840,7 +844,7 @@ canvas @ stepping."
 	^ canvas
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #'build shapes' }
 RSeGFCallflow >> defaultRSBox: rsBox [
 
 	^ rsBox

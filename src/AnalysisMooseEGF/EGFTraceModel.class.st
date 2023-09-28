@@ -20,9 +20,10 @@ EGFTraceModel class >> newFromRawStack: aString [
 { #category : #accessing }
 EGFTraceModel >> compute [
 
-	traces := Dictionary new.
+	traces := OrderedDictionary new.
 	importedOtelTraces do: [ :trace | 
 		| otlTrace |
+
 		otlTrace := OtelTrace new
 			            spanID: (trace at: #id);
 			            parentID: (trace at: #parentId ifAbsent: nil);
@@ -30,9 +31,7 @@ EGFTraceModel >> compute [
 			            timestamp: (trace at: #timestamp);
 			            methodSignature:
 				            (trace at: #tags at: 'drit.in_method_named').
-		traces at: otlTrace spanID put: otlTrace ].
-
-
+		traces at: otlTrace spanID put: otlTrace ]
 ]
 
 { #category : #accessing }
@@ -51,8 +50,8 @@ EGFTraceModel >> importedOtelTraces: anObject [
 EGFTraceModel >> initialize [
 
 	rawStack := String new.
-	traces := OrderedCollection new.
-	importedOtelTraces := OrderedCollection new.
+	traces := OrderedDictionary new.
+	importedOtelTraces := OrderedCollection new
 ]
 
 { #category : #accessing }
@@ -71,10 +70,12 @@ EGFTraceModel >> rawStack: anObject [
 EGFTraceModel >> resolveMethodFromEGFCallflow: aModel [
 
 	self flag: 'Change the number of max traces'.
-	traces values from: 1 to: 2670 do: [ :trace | 
+
+	traces values from: 100000 to: 133339 do: [ :trace | 
 		| identifier nbParms signature candidates filtered |
 		signature := trace methodSignature.
 		identifier := signature copyFrom: 1 to: (signature indexOf: $().
+		"self haltIf: trace spanID = 'ef807332ca378667'."
 
 		nbParms := ((signature
 			             copyFrom: (signature indexOf: $()
@@ -82,14 +83,12 @@ EGFTraceModel >> resolveMethodFromEGFCallflow: aModel [
 		candidates := aModel methodsNamed: identifier.
 		trace
 			famixMethodCandidates: candidates;
-			refineCandidates.
-		"filtered := candidates select: [ :m | 
+			"filtered := candidates select: [ :m | 
 			            m numberOfParameters = nbParms ].
 		filtered isEmpty
 			ifTrue: [ trace famixMethodCandidates: candidates ]
 			ifFalse: [ trace famixMethodCandidates: filtered ]."
-
-		self haltIf: [ trace famixMethodCandidates size = 0 ] ]
+				refineCandidates ]
 ]
 
 { #category : #accessing }
