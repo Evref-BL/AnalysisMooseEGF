@@ -7,7 +7,8 @@ Class {
 		'traceID',
 		'timestamp',
 		'famixMethodCandidates',
-		'methodSignature'
+		'methodSignature',
+		'order'
 	],
 	#category : #AnalysisMooseEGF
 }
@@ -39,6 +40,18 @@ OtelTrace >> methodSignature [
 OtelTrace >> methodSignature: anObject [
 
 	methodSignature := anObject
+]
+
+{ #category : #accessing }
+OtelTrace >> order [
+
+	^ order
+]
+
+{ #category : #accessing }
+OtelTrace >> order: anObject [
+
+	order := anObject
 ]
 
 { #category : #accessing }

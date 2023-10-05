@@ -23,14 +23,14 @@ EGFTraceModel >> compute [
 	traces := OrderedDictionary new.
 	importedOtelTraces do: [ :trace | 
 		| otlTrace |
-
 		otlTrace := OtelTrace new
-			            spanID: (trace at: #id);
+			            spanID: (trace at: #id ifAbsent: nil);
 			            parentID: (trace at: #parentId ifAbsent: nil);
-			            traceID: (trace at: #traceId);
-			            timestamp: (trace at: #timestamp);
-			            methodSignature:
-				            (trace at: #tags at: 'drit.in_method_named').
+			            traceID: (trace at: #traceId ifAbsent: nil);
+			            timestamp: (trace at: #timestamp ifAbsent: nil);
+			            methodSignature: (trace at: #tags at: 'drit.method' ifAbsent: nil);
+							order: (trace at: #tags at: 'drit.order' ifAbsent: nil).
+							
 		traces at: otlTrace spanID put: otlTrace ]
 ]
 
