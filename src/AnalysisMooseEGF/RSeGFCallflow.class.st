@@ -451,7 +451,7 @@ RSeGFCallflow >> buildClassDependenciesCanvas2 [
 
 	(self filterShapes: allClasses with: self filterShapesOnUCLayer) do: [ 
 		:shp | 
-		1 halt.
+		
 		shp model tagWithName: 'UCLAYER'.
 		shp color: Color green ].
 
