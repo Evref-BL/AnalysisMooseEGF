@@ -366,7 +366,7 @@ RSeGFCallflow >> buildClassDependenciesCanvas [
 { #category : #'build canvas' }
 RSeGFCallflow >> buildClassDependenciesCanvas2 [
 
-	| ssShapes ssClassDep shapes |
+	| ssShapes ssClassDep shapes uclayer serviceLayer dAOLayer transverseLayer layers othersLayer |
 	allMethods := RSGroup new.
 	allClasses := RSGroup new.
 
@@ -396,7 +396,7 @@ RSeGFCallflow >> buildClassDependenciesCanvas2 [
 			                       color: (Color lightGray alpha: 0.4);
 			                       shapes: methods;
 			                       yourself.
-		          composite extent: composite extent + 100.
+		          composite extent: composite extent + 50.
 		          "label of class group"
 		          label := RSLabel new
 			                   text: assoc key name;
@@ -415,45 +415,83 @@ RSeGFCallflow >> buildClassDependenciesCanvas2 [
 		          allClasses add: class.
 		          class ].
 
-	canvas addAll: shapes.
-
-
-
+	canvas addAllShapes: shapes.
 
 	"self drawTraceEdgeFrom: serviceTrace."
 
 
-	(RSLineBuilder arrowedLine
-		 withBorderAttachPoint;
-		 color: (Color gray alpha: 0.2);
-		 canvas: canvas;
-		 beDirectional;
-		 connectToAll: [ :class | 
-			 (ssClassDep at: class) asOrderedCollection ]) pushBack.
+
+	"Construction des layers"
+
+	layers := RSGroup new.
+
+	uclayer := self
+		           buildCompositeLayer:
+		           (self
+			            filterShapes: allClasses
+			            with: self filterShapesOnUCLayer)
+		           withName: 'usecase'
+		           withColor: (Color lightGreen alpha: 0.5).
+	layers add: uclayer.
+
+	serviceLayer := self
+		                buildCompositeLayer:
+		                (self
+			                 filterShapes: allClasses
+			                 with: self filterShapesOnServiceLayer)
+		                withName: 'service'
+		                withColor: (Color lightYellow alpha: 0.5).
+	layers add: serviceLayer.
+
+	dAOLayer := self
+		            buildCompositeLayer:
+		            (self
+			             filterShapes: allClasses
+			             with: self filterShapesOnDAOLayer)
+		            withName: 'DAO'
+		            withColor: (Color lightOrange alpha: 0.5).
+	layers add: dAOLayer.
+
+	transverseLayer := self
+		                   buildCompositeLayer: (self
+				                    filterShapes: allClasses
+				                    with: self filterShapesOnTransverseLayer)
+		                   withName: 'transverse'
+		                   withColor: (Color lightBlue alpha: 0.5).
+	layers add: transverseLayer.
+
+
+	othersLayer := self
+		               buildCompositeLayer: canvas shapes
+		               withName: 'other'
+		               withColor: (Color lightMagenta alpha: 0.5).
+	layers add: othersLayer.
+
+
+	RSVerticalLineLayout new alignCenter on: layers.
+
+
+
+	canvas addShape: (RSComposite new
+			 shapes: layers;
+			 yourself).
+
+
+
+
+
+
+
+
+
+
 
 
 
 	"LAYERS"
 
-
-	"		layer := RSGroup new
-		         addAll:
-			         (self
-				          filterShapes: allClasses
-				          with: self filterShapesOnUCLayer);
-		         add: (RSLabel new text: 'Layer UC');
-		         yourself.
-	RSHorizontalLineLayout new alignMiddle on: layer.
-	canvas add: (RSComposite new
-			 color: (Color green alpha: 0.4);
-			 shapes: layer;
-			 yourself)."
-
 	(self filterShapes: allClasses with: self filterShapesOnUCLayer) do: [ 
-		:shp | 
-		
-		shp model tagWithName: 'UCLAYER'.
-		shp color: Color green ].
+		:shp | shp color: Color green ].
 
 	(self filterShapes: allClasses with: self filterShapesOnServiceLayer) 
 		do: [ :shp | shp color: Color yellow ].
@@ -482,16 +520,62 @@ RSeGFCallflow >> buildClassDependenciesCanvas2 [
 		edges: canvas edges;
 		on: canvas nodes."
 
+
+
 	self heatmapColoring.
+
 	canvas addShape: self buildOptionMenu.
 
-	RSGridLayout on: canvas nodes.
+	(RSLineBuilder arrowedLine
+		 withBorderAttachPoint;
+		 color: (Color gray alpha: 0.9);
+		 shapes: allClasses;
+		 beDirectional;
+		 connectToAll: [ :class | 
+			 (ssClassDep at: class) asOrderedCollection ]) pushBack.
+
+
+	RSGridLayout on: canvas shapes.
 
 
 
 	canvas @ RSCanvasController.
 
 	^ canvas
+]
+
+{ #category : #'build shapes' }
+RSeGFCallflow >> buildCompositeLayer: shapes withName: name withColor: color [
+
+	| shapesCompo label boxGroup |
+	boxGroup := RSGroup new.
+	label := RSLabel new
+		         text: name;
+		         fontSize: 50;
+					bold;
+		         yourself.
+
+
+	RSGridLayout on: shapes.
+	shapesCompo := RSComposite new
+		               shapes: shapes;
+		               yourself.
+	"shapes do: [ :shp | canvas removeShape: shp ]."
+	shapesCompo extent: shapesCompo extent + 5.
+
+	"create the group for one class and its method"
+	boxGroup
+		add: label;
+		add: shapesCompo.
+	RSVerticalLineLayout new alignCenter on: boxGroup.
+
+	^ RSComposite new
+		  shapes: boxGroup;
+		  model: shapes;
+		  color: color;
+		  draggable;
+		  popup;
+		  yourself
 ]
 
 { #category : #'build canvas' }
@@ -941,8 +1025,12 @@ RSeGFCallflow >> filterShapesOnDAOLayer [
 	^ [ :elmt | 
 	  | class |
 	  class := elmt model.
-	  (class superclassHierarchy select: [ :sc | sc name = #DaoAbstract ])
-		  isNotEmpty ]
+	  ((class superclassHierarchy select: [ :sc | sc name = #DaoAbstract ])
+		  isNotEmpty) or: [ 
+		  class mooseName includesSubstring: 'DAO' caseSensitive: false ] 
+		
+		
+		]
 ]
 
 { #category : #filtering }
@@ -1003,8 +1091,20 @@ RSeGFCallflow >> filterShapesOnServiceLayer [
 	^ [ :elmt | 
 	  | class |
 	  class := elmt model.
-	  (class superclassHierarchy select: [ :sc | sc name = #ServiceAbstract ])
-		  isNotEmpty ]
+	 ((class superclassHierarchy select: [ :sc | 
+		   sc name = #ServiceAbstract ]) isNotEmpty) or: [ (class mooseName includesSubstring: 'service' caseSensitive:  false) ]
+	 ]
+]
+
+{ #category : #filtering }
+RSeGFCallflow >> filterShapesOnTransverseLayer [
+
+	"return a filtering block to excludes shapes associated with a methods model that begins with get/set"
+
+	^ [ :elmt | 
+	  | class |
+	  class := elmt model.
+		  class mooseName includesSubstring: 'transverse' caseSensitive: false  ]
 ]
 
 { #category : #filtering }
@@ -1015,8 +1115,9 @@ RSeGFCallflow >> filterShapesOnUCLayer [
 	^ [ :elmt | 
 	  | class |
 	  class := elmt model.
-	  (class superclassHierarchy select: [ :sc | sc name = #RemoteServer ])
-		  isNotEmpty ]
+	  ((class superclassHierarchy select: [ :sc | sc name = #RemoteServer ])
+		  isNotEmpty) or: [ 
+		  class mooseName includesSubstring: 'usecase' caseSensitive: false ] ]
 ]
 
 { #category : #'as yet unclassified' }
