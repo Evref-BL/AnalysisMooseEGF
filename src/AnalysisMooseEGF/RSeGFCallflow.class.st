@@ -522,7 +522,7 @@ RSeGFCallflow >> buildClassDependenciesCanvas2 [
 
 
 
-	self heatmapColoring.
+	self heatmapColoringV3.
 
 	canvas addShape: self buildOptionMenu.
 
@@ -935,13 +935,13 @@ canvas @ stepping."
 RSeGFCallflow >> defaultRSBox: rsBox [
 
 	^ rsBox
-		  "height: rsBox model sourceText lines size + 10;
-		  width: rsBox model cyclomaticComplexity + 10;"
 		  draggable;
 		  popup;
 		  border: (RSBorder new color: 'black');
-		  color: Color blue translucent;
-		  yourself
+		  color: Color black translucent;
+		  "height: rsBox model sourceText lines size + 10;
+		  width: rsBox model cyclomaticComplexity + 10;"
+			  yourself
 ]
 
 { #category : #'as yet unclassified' }
@@ -1160,12 +1160,17 @@ RSeGFCallflow >> hasSubString: txt containing: keywords [
 RSeGFCallflow >> heatmapColoring [
 
 	| colorPalette dic |
+	self
+		deprecated: 'Use #heatmapColoringV2 instead'
+		on: '9 October 2023'
+		in:
+		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
 	dic := Dictionary new.
 	colorPalette := NSScale linear
 		                range: { 
 				                Color white.
 				                Color red };
-		                domain: { 0. 50 };
+		                domain: { 0. 1000 };
 		                yourself.
 
 	otelTraces traces valuesDo: [ :t | 
@@ -1174,6 +1179,70 @@ RSeGFCallflow >> heatmapColoring [
 			shape := allMethods shapesFromModel: mth.
 			lvl := dic at: mth ifAbsentPut: [ 0 ].
 			shape color: (colorPalette scale: (dic at: mth put: lvl + 1)) ] ]
+]
+
+{ #category : #'as yet unclassified' }
+RSeGFCallflow >> heatmapColoringV2 [
+
+	| colorPalette dic |
+	dic := Dictionary new.
+	colorPalette := NSScale linear
+		                range: { 
+				                Color white.
+				                Color red };
+		                domain: { 0. 50 };
+		                yourself.
+
+	otelTraces tracesGrpBySignature valuesDo: [ :traces | 
+		| heat shp |
+		heat := traces size.
+		shp := allMethods shapesFromModel:
+			       traces anyOne famixMethodCandidates anyOne.
+		shp color: (colorPalette scale: heat) ]
+]
+
+{ #category : #'as yet unclassified' }
+RSeGFCallflow >> heatmapColoringV3 [
+
+	| colorPalette dic shapes|
+	dic := Dictionary new.
+	colorPalette := NSScale linear
+		                range: { 
+				                Color white.
+				                Color red };
+		                domain: { 0. 50 };
+		                yourself.
+
+"RSNormalizer color
+		  scale: colorPalette;
+		  shapes: self shapes;
+		  normalize: [ :el | 
+			  self maxDomainValue
+				  ifNotNil: [ :max | (self nodeValueBlock value: el) min: max ]
+				  ifNil: [ self nodeValueBlock value: el ] ]"
+		
+	shapes := (otelTraces tracesGrpBySignature associations collect: [ :asso | 
+			|traces sh|
+			traces := asso value.
+			(allMethods shapesFromModel:
+			       traces anyOne famixMethodCandidates anyOne) anyOne -> traces size.]) asDictionary .
+		
+	 
+	RSNormalizer color
+		  scale: colorPalette;
+		  shapes: shapes keys;
+		  normalize: [ :el | 
+			  nil
+				  ifNotNil: [ :max | (shapes at: el) min: max ]
+				  ifNil: [ (shapes at: (allMethods shapesFromModel: el) anyOne) ] ].
+	
+	
+"	otelTraces tracesGrpBySignature valuesDo: [ :traces | 
+		| heat shp |
+		heat := traces size.
+		shp := allMethods shapesFromModel:
+			       traces anyOne famixMethodCandidates anyOne.
+		shp color: (colorPalette scale: heat) ]"
 ]
 
 { #category : #filtering }

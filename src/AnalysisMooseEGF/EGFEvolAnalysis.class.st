@@ -258,16 +258,12 @@ EGFEvolAnalysis >> isThrowingRemoteException: aFamixMethod [
 EGFEvolAnalysis >> orderByPositionAMethodInvocations: aMethod [
 
 	| invocations positions |
-	
-
 	"self allInvockedMethodsOf: aMethod "
-	
-	positions := (self allInvockedMethodsOf: aMethod )
-		             collect: [ :invoc | 
-			             | mth endpos |
-			             mth := invoc candidates anyOne.
-			             endpos := invoc sourceAnchor endPos.
-			             mth -> endpos ].
+	positions := (self allInvockedMethodsOf: aMethod) collect: [ :invoc | 
+		             | mth endpos |
+		             mth := invoc candidates anyOne.
+		             endpos := invoc sourceAnchor endPos.
+		             mth -> endpos ].
 	invocations := Dictionary new.
 	positions do: [ :assoc | 
 		invocations

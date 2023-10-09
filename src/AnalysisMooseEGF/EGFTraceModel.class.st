@@ -75,41 +75,67 @@ EGFTraceModel >> rawStack: anObject [
 { #category : #'as yet unclassified' }
 EGFTraceModel >> refineCandidates: candidates withSignature: methodSignature [
 
-	| filtered parms |
-	"we dont refine if there is only one candidates"
-	candidates size = 1 ifTrue: [ ^ candidates ].
-
+	| filtered parms nbParms|
+	nbParms := 0.
 	filtered := OrderedCollection new.
-
+	
 	"check for the same number of parameter"
 	parms := (methodSignature
 		          copyFrom: (methodSignature indexOf: $() + 1
 		          to: (methodSignature indexOf: $)) - 1) splitOn: ','.
-	filtered := candidates select: [ :m | 
-		            m numberOfParameters = parms size ].
+
+	parms first isEmptyOrNil ifFalse: [ nbParms := parms size ].
+
+	filtered := candidates select: [ :m | m numberOfParameters = nbParms ].
 	"check if the paremeters are of the same type "
 	filtered := filtered select: [ :m | 
-		            | mtdParms check |
+		            | mtdParms check mooseSignature parmNames orderedMooseParams|
 		            check := true.
-		            mtdParms := (m mooseNameWithDots
-			                         copyFrom:
-			                         (m mooseNameWithDots indexOf: $() + 1
-			                         to: (m mooseNameWithDots indexOf: $)) - 1) 
-			                        splitOn: ','.
-		            1 to: parms size do: [ :i | 
-			            | pc pt |
-			            pc := (mtdParms at: i) replaceAllRegex: '<.*>' with: ''.
-			            pt := (parms at: i) replaceAllRegex: '<.*>' with: ''.
+		
+						"regexMtdSignature := (m mooseNameWithDots) replaceAllRegex: '<.*>' with: ''."
+		            parmNames := m parameters.
+						
+						
+						"Sort parameter of the Famix method by their position in sourceText"
+						mooseSignature := m sourceText copyFrom: 1 to: (((m sourceText) indexOf: ${) -1).
+						"obtain position in source code of each parm"
+						orderedMooseParams := parmNames collect: [:p |
+							|name|
+							name := p name.
+							p -> (mooseSignature findString: name).
+							  ].
+						"sort them by position"
+						parmNames := (orderedMooseParams sort: [ :x :y | x value < y value ]) collect: [ :asso | asso key ].
+						
+						
+						
+						1 to: nbParms do: [ :i | 
+			            | parmMoose parmTrace |
+							
+							parmMoose := (parmNames at: i) declaredType name.
+							parmTrace := parms at: i. 
+							
+							((parmMoose includesSubstring: parmTrace) or: [ 
+				             parmTrace includesSubstring: parmMoose ]) ifFalse: [ 
+				            check := false ].
+							
+						
+							
+			            "parmMoose := (mtdParms at: i) replaceAllRegex: '<.*>' with: ''.
+			            parmTrace := (parms at: i) replaceAllRegex: '<.*>' with: ''.
 
-			            ((pc includesSubstring: pt) or: [ 
-				             pt includesSubstring: pc ]) ifFalse: [ 
-				            check := false ] ].
+			            ((parmMoose includesSubstring: parmTrace) or: [ 
+				             parmTrace includesSubstring: parmMoose ]) ifFalse: [ 
+				            check := false ]" ].
+		
 		            check ].
 
-	"if the filtered are empty, we return the initial candidate list instead"
+	^ filtered .
+
+	"""if the filtered are empty, we return the initial candidate list instead""
 	filtered isEmpty
 		ifTrue: [ ^ candidates ]
-		ifFalse: [ ^ filtered ]
+		ifFalse: [ ^ filtered ]"
 ]
 
 { #category : #'as yet unclassified' }
@@ -148,25 +174,26 @@ EGFTraceModel >> resolveMethodFromEGFCallflow: aModel [
 { #category : #'as yet unclassified' }
 EGFTraceModel >> resolveMethodFromEGFCallflowV2: aModel [
 
-	| min max |
-	min := 1.
-	max := tracesInOrder values size / 1.
-
 	tracesGrpBySignature keysDo: [ :signature | 
-		| identifier nbParms candidates "filtered" |
+		| identifier candidates "filtered" |
 		identifier := signature copyFrom: 1 to: (signature indexOf: $().
-		"self haltIf: trace spanID = 'ef807332ca378667'."
 
-		nbParms := ((signature
-			             copyFrom: (signature indexOf: $()
-			             to: (signature indexOf: $))) splitOn: ',') size.
+
 		candidates := aModel methodsNamed: identifier.
 		candidates := self
 			              refineCandidates: candidates
 			              withSignature: signature.
 
+
 		(tracesGrpBySignature at: signature) do: [ :trace | 
-			trace famixMethodCandidates: candidates ] ]
+			trace famixMethodCandidates: candidates ] ].
+
+	tracesGrpBySignature := (tracesGrpBySignature associations reject: [ 
+		                        :assoc | 
+		                        assoc value anyOne famixMethodCandidates
+			                        isEmpty ]) asDictionary .
+
+	^ self
 ]
 
 { #category : #accessing }
@@ -179,4 +206,10 @@ EGFTraceModel >> traces [
 EGFTraceModel >> traces: anObject [
 
 	tracesInOrder := anObject
+]
+
+{ #category : #accessing }
+EGFTraceModel >> tracesGrpBySignature [
+
+	^ tracesGrpBySignature
 ]
