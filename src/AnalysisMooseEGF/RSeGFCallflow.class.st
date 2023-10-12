@@ -538,6 +538,7 @@ RSeGFCallflow >> buildClassDependenciesCanvas [
 		edges: canvas edges;
 		on: canvas nodes."
 
+
 	canvas addShape: self buildOptionMenu.
 
 	RSGridLayout on: canvas nodes.
@@ -1209,9 +1210,11 @@ RSeGFCallflow >> heatmapColoringV2 [
 { #category : #'as yet unclassified' }
 RSeGFCallflow >> heatmapColoringV3 [
 
+
 	| colorPalette dic shapes |
 	dic := Dictionary new.
 	colorPalette := NSScale sqrt
+
 		                range: { 
 				                Color white.
 				                Color red };
@@ -1219,6 +1222,7 @@ RSeGFCallflow >> heatmapColoringV3 [
 		                yourself.
 
 	"RSNormalizer color
+
 		  scale: colorPalette;
 		  shapes: self shapes;
 		  normalize: [ :el | 
@@ -1239,6 +1243,7 @@ RSeGFCallflow >> heatmapColoringV3 [
 		scale: colorPalette;
 		shapes: shapes keys;
 		normalize: [ :el | "	otelTraces tracesGrpBySignature valuesDo: [ :traces | 
+
 		| heat shp |
 		heat := traces size.
 		shp := allMethods shapesFromModel:
@@ -1247,6 +1252,7 @@ RSeGFCallflow >> heatmapColoringV3 [
 			nil
 				ifNotNil: [ :max | (shapes at: el) min: max ]
 				ifNil: [ shapes at: (allMethods shapesFromModel: el) anyOne ] ]
+
 ]
 
 { #category : #filtering }
