@@ -235,136 +235,7 @@ RSeGFCallflow >> applyFiltersOn: shapes [
 ]
 
 { #category : #'build canvas' }
-RSeGFCallflow >> buildClassDependenciesCanvas [
-
-	| ssShapes ssClassDep shapes  |
-	allMethods := RSGroup new.
-	allClasses := RSGroup new.
-
-	ssShapes := eGFCallflowModel classGroup copy.
-	ssClassDep := eGFCallflowModel classDependencies copy.
-
-
-	canvas := RSCanvas new.
-
-	"canvas showEncompassingRectangles."
-	shapes := ssShapes associations collect: [ :assoc | 
-		          | group label composite methods class |
-		          group := RSGroup new.
-
-		          methods := assoc value collect: [ :met | 
-			                     self buildMethodBox: met ].
-
-		          self
-			          toggled: #referencingSQL;
-			          toggled: #executingSQL.
-		          methods := self applyFiltersOn: methods.
-
-
-		          allMethods addAll: methods.
-
-		          RSGridLayout on: methods.
-		          "composite that regroup methods of an Class"
-		          composite := RSComposite new
-			                       color: (Color lightGray alpha: 0.4);
-			                       shapes: methods;
-			                       yourself.
-		          composite extent: composite extent + 100.
-		          "label of class group"
-		          label := RSLabel new
-			                   text: assoc key name;
-			                   yourself.
-		          "create the group for one class and its method"
-		          group
-			          add: label;
-			          add: composite.
-		          RSVerticalLineLayout new alignCenter on: group.
-		          class := RSComposite new
-			                   shapes: group;
-			                   model: assoc key;
-			                   draggable;
-			                   popup;
-			                   yourself.
-		          allClasses add: class.
-		          class ].
-
-	canvas addAll: shapes.
-
-
-
-
-	self drawTraceEdgeFrom: serviceTrace.
-
-
-	(RSLineBuilder arrowedLine
-		 withBorderAttachPoint;
-		 color: (Color gray alpha: 0.2);
-		 canvas: canvas;
-		 beDirectional;
-		 connectToAll: [ :class | 
-			 (ssClassDep at: class) asOrderedCollection ]) pushBack.
-
-
-
-	"LAYERS"
-
-
-	"		layer := RSGroup new
-		         addAll:
-			         (self
-				          filterShapes: allClasses
-				          with: self filterShapesOnUCLayer);
-		         add: (RSLabel new text: 'Layer UC');
-		         yourself.
-	RSHorizontalLineLayout new alignMiddle on: layer.
-	canvas add: (RSComposite new
-			 color: (Color green alpha: 0.4);
-			 shapes: layer;
-			 yourself)."
-
-	(self filterShapes: allClasses with: self filterShapesOnUCLayer) do: [ 
-		:shp | shp color: Color green ].
-
-	(self filterShapes: allClasses with: self filterShapesOnServiceLayer) 
-		do: [ :shp | shp color: Color yellow ].
-
-	(self filterShapes: allClasses with: self filterShapesOnDAOLayer) 
-		do: [ :shp | shp color: Color orange ].
-
-
-
-
-	"RSHorizontalTreeLayout on: shapes."
-
-
-	"RSClusterTreeLayout on: shapes."
-
-	"	stepping := RSForceLayoutSteppingInteraction new.
-	stepping layout
-		length: 150;
-		charge: -10000.
-	canvas @ stepping.
-"
-	"RSForceBasedLayout new
-		length: 300;
-		charge: -10200;
-		nodes: canvas nodes;
-		edges: canvas edges;
-		on: canvas nodes."
-
-	canvas addShape: self buildOptionMenu.
-
-	RSGridLayout on: canvas nodes.
-
-
-
-	canvas @ RSCanvasController.
-
-	^ canvas
-]
-
-{ #category : #'build canvas' }
-RSeGFCallflow >> buildClassDependenciesCanvas2 [
+RSeGFCallflow >> buildCanvas [
 
 	| ssShapes ssClassDep shapes uclayer serviceLayer dAOLayer transverseLayer layers othersLayer |
 	allMethods := RSGroup new.
@@ -522,7 +393,7 @@ RSeGFCallflow >> buildClassDependenciesCanvas2 [
 
 
 
-	self heatmapColoring.
+	self heatmapColoringV3.
 
 	canvas addShape: self buildOptionMenu.
 
@@ -536,6 +407,140 @@ RSeGFCallflow >> buildClassDependenciesCanvas2 [
 
 
 	RSGridLayout on: canvas shapes.
+
+
+
+	canvas @ RSCanvasController.
+
+	^ canvas
+]
+
+{ #category : #'build canvas' }
+RSeGFCallflow >> buildClassDependenciesCanvas [
+
+	| ssShapes ssClassDep shapes |
+	self
+		deprecated: 'Use #buildCanvas instead'
+		on: '10 October 2023'
+		in:
+		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
+	allMethods := RSGroup new.
+	allClasses := RSGroup new.
+
+	ssShapes := eGFCallflowModel classGroup copy.
+	ssClassDep := eGFCallflowModel classDependencies copy.
+
+
+	canvas := RSCanvas new.
+
+	"canvas showEncompassingRectangles."
+	shapes := ssShapes associations collect: [ :assoc | 
+		          | group label composite methods class |
+		          group := RSGroup new.
+
+		          methods := assoc value collect: [ :met | 
+			                     self buildMethodBox: met ].
+
+		          self
+			          toggled: #referencingSQL;
+			          toggled: #executingSQL.
+		          methods := self applyFiltersOn: methods.
+
+
+		          allMethods addAll: methods.
+
+		          RSGridLayout on: methods.
+		          "composite that regroup methods of an Class"
+		          composite := RSComposite new
+			                       color: (Color lightGray alpha: 0.4);
+			                       shapes: methods;
+			                       yourself.
+		          composite extent: composite extent + 100.
+		          "label of class group"
+		          label := RSLabel new
+			                   text: assoc key name;
+			                   yourself.
+		          "create the group for one class and its method"
+		          group
+			          add: label;
+			          add: composite.
+		          RSVerticalLineLayout new alignCenter on: group.
+		          class := RSComposite new
+			                   shapes: group;
+			                   model: assoc key;
+			                   draggable;
+			                   popup;
+			                   yourself.
+		          allClasses add: class.
+		          class ].
+
+	canvas addAll: shapes.
+
+
+
+
+	self drawTraceEdgeFrom: serviceTrace.
+
+
+	(RSLineBuilder arrowedLine
+		 withBorderAttachPoint;
+		 color: (Color gray alpha: 0.2);
+		 canvas: canvas;
+		 beDirectional;
+		 connectToAll: [ :class | 
+			 (ssClassDep at: class) asOrderedCollection ]) pushBack.
+
+
+
+	"LAYERS"
+
+
+	"		layer := RSGroup new
+		         addAll:
+			         (self
+				          filterShapes: allClasses
+				          with: self filterShapesOnUCLayer);
+		         add: (RSLabel new text: 'Layer UC');
+		         yourself.
+	RSHorizontalLineLayout new alignMiddle on: layer.
+	canvas add: (RSComposite new
+			 color: (Color green alpha: 0.4);
+			 shapes: layer;
+			 yourself)."
+
+	(self filterShapes: allClasses with: self filterShapesOnUCLayer) do: [ 
+		:shp | shp color: Color green ].
+
+	(self filterShapes: allClasses with: self filterShapesOnServiceLayer) 
+		do: [ :shp | shp color: Color yellow ].
+
+	(self filterShapes: allClasses with: self filterShapesOnDAOLayer) 
+		do: [ :shp | shp color: Color orange ].
+
+
+
+
+	"RSHorizontalTreeLayout on: shapes."
+
+
+	"RSClusterTreeLayout on: shapes."
+
+	"	stepping := RSForceLayoutSteppingInteraction new.
+	stepping layout
+		length: 150;
+		charge: -10000.
+	canvas @ stepping.
+"
+	"RSForceBasedLayout new
+		length: 300;
+		charge: -10200;
+		nodes: canvas nodes;
+		edges: canvas edges;
+		on: canvas nodes."
+
+	canvas addShape: self buildOptionMenu.
+
+	RSGridLayout on: canvas nodes.
 
 
 
@@ -935,13 +940,13 @@ canvas @ stepping."
 RSeGFCallflow >> defaultRSBox: rsBox [
 
 	^ rsBox
-		  "height: rsBox model sourceText lines size + 10;
-		  width: rsBox model cyclomaticComplexity + 10;"
 		  draggable;
 		  popup;
 		  border: (RSBorder new color: 'black');
-		  color: Color blue translucent;
-		  yourself
+		  color: Color black translucent;
+		  "height: rsBox model sourceText lines size + 10;
+		  width: rsBox model cyclomaticComplexity + 10;"
+			  yourself
 ]
 
 { #category : #'as yet unclassified' }
@@ -1160,12 +1165,17 @@ RSeGFCallflow >> hasSubString: txt containing: keywords [
 RSeGFCallflow >> heatmapColoring [
 
 	| colorPalette dic |
+	self
+		deprecated: 'Use #heatmapColoringV2 instead'
+		on: '9 October 2023'
+		in:
+		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
 	dic := Dictionary new.
 	colorPalette := NSScale linear
 		                range: { 
 				                Color white.
 				                Color red };
-		                domain: { 0. 50 };
+		                domain: { 0. 1000 };
 		                yourself.
 
 	otelTraces traces valuesDo: [ :t | 
@@ -1174,6 +1184,69 @@ RSeGFCallflow >> heatmapColoring [
 			shape := allMethods shapesFromModel: mth.
 			lvl := dic at: mth ifAbsentPut: [ 0 ].
 			shape color: (colorPalette scale: (dic at: mth put: lvl + 1)) ] ]
+]
+
+{ #category : #'as yet unclassified' }
+RSeGFCallflow >> heatmapColoringV2 [
+
+	| colorPalette dic |
+	dic := Dictionary new.
+	colorPalette := NSScale linear
+		                range: { 
+				                Color white.
+				                Color red };
+		                domain: { 0. 50 };
+		                yourself.
+
+	otelTraces tracesGrpBySignature valuesDo: [ :traces | 
+		| heat shp |
+		heat := traces size.
+		shp := allMethods shapesFromModel:
+			       traces anyOne famixMethodCandidates anyOne.
+		shp color: (colorPalette scale: heat) ]
+]
+
+{ #category : #'as yet unclassified' }
+RSeGFCallflow >> heatmapColoringV3 [
+
+	| colorPalette dic shapes |
+	dic := Dictionary new.
+	colorPalette := NSScale sqrt
+		                range: { 
+				                Color white.
+				                Color red };
+		                domain: { 0. 50 };
+		                yourself.
+
+	"RSNormalizer color
+		  scale: colorPalette;
+		  shapes: self shapes;
+		  normalize: [ :el | 
+			  self maxDomainValue
+				  ifNotNil: [ :max | (self nodeValueBlock value: el) min: max ]
+				  ifNil: [ self nodeValueBlock value: el ] ]"
+
+	shapes := (otelTraces tracesGrpBySignature associations collect: [ 
+		           :asso | 
+		           | traces sh |
+		           traces := asso value.
+		           (allMethods shapesFromModel:
+			            traces anyOne famixMethodCandidates anyOne) anyOne
+		           -> traces size ]) asDictionary.
+
+
+	RSNormalizer color
+		scale: colorPalette;
+		shapes: shapes keys;
+		normalize: [ :el | "	otelTraces tracesGrpBySignature valuesDo: [ :traces | 
+		| heat shp |
+		heat := traces size.
+		shp := allMethods shapesFromModel:
+			       traces anyOne famixMethodCandidates anyOne.
+		shp color: (colorPalette scale: heat) ]"
+			nil
+				ifNotNil: [ :max | (shapes at: el) min: max ]
+				ifNil: [ shapes at: (allMethods shapesFromModel: el) anyOne ] ]
 ]
 
 { #category : #filtering }

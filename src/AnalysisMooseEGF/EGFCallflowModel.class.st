@@ -298,10 +298,7 @@ EGFCallflowModel >> getterMethods [
 
 	"retrieve the methods that have no invokation"
 
-	| leafs |
-	leafs := OrderedCollection new.
-	flattenMethods keysDo: [ :method | (method name beginsWith: 'get') ifTrue: [ leafs add: method ] ].
-	^ leafs
+^ (self flattenMethods keys select: #isGetter).
 ]
 
 { #category : #'computing - dependencies' }
@@ -477,12 +474,16 @@ EGFCallflowModel >> methodsNamed: aString withNbParameters: n [
 ]
 
 { #category : #'as yet unclassified' }
+EGFCallflowModel >> methodsToObserve [ 
+
+	^ self flattenMethods keys \ self leafMethods
+	  \ (self flattenMethods keys select: #isGetter)
+	  \ (self flattenMethods keys select: #isSetter)
+]
+
+{ #category : #'as yet unclassified' }
 EGFCallflowModel >> setterMethods [
 
-	"retrieve the methods that have no invokation"
-
-	| leafs |
-	leafs := OrderedCollection new.
-	flattenMethods keysDo: [ :method | (method name beginsWith: 'set') ifTrue: [ leafs add: method ] ].
-	^ leafs
+	"retrieve the methods that have no invokation"	
+	^ (self flattenMethods keys select: #isSetter).
 ]
