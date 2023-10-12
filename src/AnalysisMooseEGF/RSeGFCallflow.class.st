@@ -1212,6 +1212,8 @@ RSeGFCallflow >> heatmapColoringV3 [
 
 
 	| colorPalette dic shapes |
+	otelTraces ifNil: [ ^ self ].
+	
 	dic := Dictionary new.
 	colorPalette := NSScale sqrt
 
