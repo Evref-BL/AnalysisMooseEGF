@@ -12,20 +12,23 @@ Class {
 }
 
 { #category : #'as yet unclassified' }
-EGFCallflowModel class >> exportToOtelJavaAgent: callFlowModel [
+EGFCallflowModel class >> exportMethodsToOtelJavaAgent: methods withEntryPoint: anEntryPoint [
 
-	| pkgs strActivMethod strPkgs strMthds mths methods|
+	| pkgs strActivMethod strPkgs strMthds mths |
 	"create a string to paste inside your java code to configure the OTEL agent"
-	methods := callFlowModel flattenMethods keys.
+
 	pkgs := Set new.
 	mths := Set new.
 	strActivMethod := ''.
 	strPkgs := ''.
 	strMthds := ''.
-	1 halt. 
-	strActivMethod := 'final static String ACTIVATION_SIGNATURE = "',callFlowModel entryPoint mooseNameWithDotsNoParenthesis,'";'.
 
-	
+	strActivMethod := 'final static String ACTIVATION_SIGNATURE = "'
+	                  ,
+	                   anEntryPoint
+		                  mooseNameWithDotsNoParenthesis , '";'.
+
+
 	methods do: [ :m | 
 		| s |
 		s := m mooseNameWithDotsNoParenthesis.
@@ -54,7 +57,8 @@ EGFCallflowModel class >> exportToOtelJavaAgent: callFlowModel [
 	            , ')), this.getClass().getName() + "$TODO-ADVICEENAME");'.
 
 
-	^ strActivMethod, String cr , String cr, strPkgs , String cr , String cr , String cr , strMthds
+	^ strActivMethod , String cr , String cr , strPkgs , String cr
+	  , String cr , String cr , strMthds
 ]
 
 { #category : #'instance creation' }
@@ -216,6 +220,14 @@ EGFCallflowModel >> exportComplexityCycloDiagramCSV [
 	recBlock value: entryPoint.
 
 	^ export
+]
+
+{ #category : #'as yet unclassified' }
+EGFCallflowModel >> exportToOtelJavaAgent [
+
+	
+	^ EGFCallflowModel exportMethodsToOtelJavaAgent: self methodsToObserve withEntryPoint: self entryPoint.
+	
 ]
 
 { #category : #accessing }
