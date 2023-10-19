@@ -12,14 +12,20 @@ Class {
 }
 
 { #category : #'as yet unclassified' }
-EGFCallflowModel class >> exportToOtelJavaAgent: methods [
+EGFCallflowModel class >> exportToOtelJavaAgent: callFlowModel [
 
-	| pkgs strPkgs strMthds mths |
+	| pkgs strActivMethod strPkgs strMthds mths methods|
 	"create a string to paste inside your java code to configure the OTEL agent"
+	methods := callFlowModel flattenMethods keys.
 	pkgs := Set new.
 	mths := Set new.
+	strActivMethod := ''.
 	strPkgs := ''.
 	strMthds := ''.
+	1 halt. 
+	strActivMethod := 'final static String ACTIVATION_SIGNATURE = "',callFlowModel entryPoint mooseNameWithDotsNoParenthesis,'";'.
+
+	
 	methods do: [ :m | 
 		| s |
 		s := m mooseNameWithDotsNoParenthesis.
@@ -48,7 +54,7 @@ EGFCallflowModel class >> exportToOtelJavaAgent: methods [
 	            , ')), this.getClass().getName() + "$TODO-ADVICEENAME");'.
 
 
-	^ strPkgs , String cr , String cr , String cr , strMthds
+	^ strActivMethod, String cr , String cr, strPkgs , String cr , String cr , String cr , strMthds
 ]
 
 { #category : #'instance creation' }
