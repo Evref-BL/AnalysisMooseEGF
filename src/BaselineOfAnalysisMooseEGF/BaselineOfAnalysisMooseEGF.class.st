@@ -15,34 +15,19 @@ BaselineOfAnalysisMooseEGF >> baseline: spec [
 		self defineGroups: spec ]
 ]
 
-{ #category : #accessing }
-BaselineOfAnalysisMooseEGF >> customProjectAttributes [ 
-
-	^ RPackageOrganizer default packages
-		  detect: [ :package | package name = 'BaselineOfFamix' ]
-		  ifFound: [ #(  ) ]
-		  ifNone: [ #( #NeedsMoose ) ]
-]
-
 { #category : #'as yet unclassified' }
 BaselineOfAnalysisMooseEGF >> defineDependencies: spec [
 
 	"donne les ref vers le projet qui se trouve sur un depot distance (je crois)"
 
-spec baseline: 'FamixOpenTelemetry' with: [ 
-			spec
-			
-				repository: 'github://moosetechnology/Famix-OpenTelemetry:main/src' ].
-
-spec for: #NeedsMoose do: [ 
-		spec baseline: 'Famix' with: [ 
-			spec
-				loads: #( 'Core' 'Basic' );
-				repository: 'github://moosetechnology/Famix:development/src' ].]
-		
-		
-
-
+	spec
+		baseline: 'Moose'
+		with: [ 
+		spec repository: 'github://moosetechnology/Moose:development/src' ].
+	
+	spec
+				baseline: 'Roassal3'
+				with: [ spec repository: 'github://ObjectProfile/Roassal3/src' ]
 ]
 
 { #category : #defaults }
@@ -54,6 +39,7 @@ BaselineOfAnalysisMooseEGF >> defineGroups: spec [
 BaselineOfAnalysisMooseEGF >> definePackages: spec [
 
 	spec
-		package: 'AnalysisMooseEGF' with: [ spec requires: 'FamixOpenTelemetry' ];
-		package: 'AnalysisMooseEGF-service-extractor'.
+		package: 'AnalysisMooseEGF';
+		package: 'Moose';
+		package: 'Roassal3'
 ]
