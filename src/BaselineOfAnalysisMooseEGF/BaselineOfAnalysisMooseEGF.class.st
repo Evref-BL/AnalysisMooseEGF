@@ -1,11 +1,11 @@
 Class {
-	#name : #BaselineOfAnaysisMooseEgf,
+	#name : #BaselineOfAnalysisMooseEGF,
 	#superclass : #BaselineOf,
 	#category : #BaselineOfAnalysisMooseEGF
 }
 
 { #category : #baselines }
-BaselineOfAnaysisMooseEgf >> baseline: spec [
+BaselineOfAnalysisMooseEGF >> baseline: spec [
 
 
 	<baseline>
@@ -16,30 +16,29 @@ BaselineOfAnaysisMooseEgf >> baseline: spec [
 ]
 
 { #category : #'as yet unclassified' }
-BaselineOfAnaysisMooseEgf >> defineDependencies: spec [
+BaselineOfAnalysisMooseEGF >> defineDependencies: spec [
 
 	"donne les ref vers le projet qui se trouve sur un depot distance (je crois)"
 
-	spec
+"	spec
 		baseline: 'Moose'
 		with: [ 
 		spec repository: 'github://moosetechnology/Moose:development/src' ].
 	
 	spec
 				baseline: 'Roassal3'
-				with: [ spec repository: 'github://ObjectProfile/Roassal3/src' ]
+				with: [ spec repository: 'github://ObjectProfile/Roassal3/src' ]"
 ]
 
 { #category : #defaults }
-BaselineOfAnaysisMooseEgf >> defineGroups: spec [
+BaselineOfAnalysisMooseEGF >> defineGroups: spec [
 "aucune idée"
 ]
 
 { #category : #defaults }
-BaselineOfAnaysisMooseEgf >> definePackages: spec [
+BaselineOfAnalysisMooseEGF >> definePackages: spec [
 
 	spec
 		package: 'AnalysisMooseEGF';
-		package: 'Moose';
-		package: 'Roassal3'
+		package: 'AnalysisMooseEGF-service-extractor'
 ]
