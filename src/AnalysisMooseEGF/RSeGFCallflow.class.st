@@ -1179,7 +1179,7 @@ RSeGFCallflow >> heatmapColoring [
 		                domain: { 0. 1000 };
 		                yourself.
 
-	otelTraces traces valuesDo: [ :t | 
+	otelTraces spanById valuesDo: [ :t | 
 		t famixMethodCandidates do: [ :mth | 
 			| shape lvl |
 			shape := allMethods shapesFromModel: mth.
@@ -1199,7 +1199,7 @@ RSeGFCallflow >> heatmapColoringV2 [
 		                domain: { 0. 50 };
 		                yourself.
 
-	otelTraces tracesGrpBySignature valuesDo: [ :traces | 
+	otelTraces spanByMethods valuesDo: [ :traces | 
 		| heat shp |
 		heat := traces size.
 		shp := allMethods shapesFromModel:
@@ -1232,7 +1232,7 @@ RSeGFCallflow >> heatmapColoringV3 [
 				  ifNotNil: [ :max | (self nodeValueBlock value: el) min: max ]
 				  ifNil: [ self nodeValueBlock value: el ] ]"
 
-	shapes := (otelTraces tracesGrpBySignature associations collect: [ 
+	shapes := (otelTraces spanByMethods associations collect: [ 
 		           :asso | 
 		           | traces sh |
 		           traces := asso value.

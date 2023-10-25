@@ -3,12 +3,23 @@ Class {
 	#superclass : #Object,
 	#instVars : [
 		'rawStack',
-		'importedOtelTraces',
-		'tracesInOrder',
-		'tracesGrpBySignature'
+		'spansByMethods',
+		'spanById',
+		'importedOTelTrace'
 	],
 	#category : #AnalysisMooseEGF
 }
+
+{ #category : #initialize }
+EGFTraceModel class >> newFromFamixOTelModel: aFamixOTelModel [
+
+	"model := OpenTelemetryImporter importFromJavaLogFile: 	'/path/to/Console-exporter-logging-16102023-clean-subset.log'."
+
+	| traces |
+	traces := EGFTraceModel new.
+	traces importOTelTracesFromModel: aFamixOTelModel.
+	^ traces
+]
 
 { #category : #'instance creation' }
 EGFTraceModel class >> newFromRawStack: aString [
@@ -18,46 +29,88 @@ EGFTraceModel class >> newFromRawStack: aString [
 	^ t. 
 ]
 
+{ #category : #importer }
+EGFTraceModel >> importOTelTracesFromModel: aFamixOTelModel [
+
+	| spans |
+	spans := aFamixOTelModel entities select: [ :entity | 
+		         entity className = #FamixOTelSpan ].
+
+	spanById := OrderedDictionary new.
+	spansByMethods := Dictionary new.
+
+	spans do: [ :span | 
+		| OTSpan |
+
+		OTSpan := OTelSpanProxy newFrom: span.
+		
+
+		spanById at: OTSpan spanID put: OTSpan.
+
+		spansByMethods
+			at: OTSpan methodSignature
+			ifPresent: [ :elmnt | elmnt add: OTSpan ]
+			ifAbsentPut: [ 
+				| array |
+				array := OrderedCollection new.
+				array add: OTSpan.
+				array ] ]
+]
+
 { #category : #accessing }
 EGFTraceModel >> importedOtelTraces [
 
-	^ importedOtelTraces
+	^ importedOTelTrace
 ]
 
 { #category : #accessing }
 EGFTraceModel >> importedOtelTraces: anObject [
 
-	importedOtelTraces := anObject
-]
-
-{ #category : #accessing }
-EGFTraceModel >> initTraces [
-
-	tracesInOrder := OrderedDictionary new.
-	tracesGrpBySignature := Dictionary new. 
-	importedOtelTraces do: [ :trace | 
-		| otlTrace |
-		otlTrace := OtelTrace new
-			            spanID: (trace at: #id ifAbsent: nil);
-			            parentID: (trace at: #parentId ifAbsent: nil);
-			            traceID: (trace at: #traceId ifAbsent: nil);
-			            timestamp: (trace at: #timestamp ifAbsent: nil);
-			            methodSignature:
-				            (trace at: #tags at: 'drit.method' ifAbsent: nil);
-			            order: (trace at: #tags at: 'drit.order' ifAbsent: nil).
-
-		tracesInOrder at: otlTrace spanID put: otlTrace.
-		
-		tracesGrpBySignature at: otlTrace methodSignature ifPresent: [ :elmnt | elmnt add: otlTrace. ] ifAbsentPut: [ |array| array := OrderedCollection new. array add: otlTrace.  array. ] .
-		 ]
+	importedOTelTrace := anObject
 ]
 
 { #category : #'as yet unclassified' }
 EGFTraceModel >> initialize [
 
 	rawStack := String new.
-	tracesInOrder := OrderedDictionary new.
-	importedOtelTraces := OrderedCollection new
+	spanById := OrderedDictionary new.
+	importedOTelTrace := OrderedCollection new
+]
+
+{ #category : #accessing }
+EGFTraceModel >> initializingSpans [
+
+	spanById := OrderedDictionary new.
+	spansByMethods := Dictionary new.
+	importedOTelTrace do: [ :trace | 
+		trace do: [ :rawSpan |
+			| otlTrace |
+		otlTrace := OTelSpan new
+			            spanID: (rawSpan at: #id ifAbsent: nil);
+			            parentID: (rawSpan at: #parentId ifAbsent: nil);
+			            traceID: (rawSpan at: #traceId ifAbsent: nil);
+			            timestamp: (rawSpan at: #timestamp ifAbsent: nil);
+			            methodSignature:
+				            (rawSpan at: #tags at: 'drit.method' ifAbsent: nil);
+			            order: (rawSpan at: #tags at: 'drit.order' ifAbsent: nil);
+			            stackcall:
+				            (rawSpan at: #tags at: 'drit.stackcall' ifAbsent: nil);
+			            threadID:
+				            (rawSpan at: #tags at: 'thread.id' ifAbsent: nil).
+
+		spanById at: otlTrace spanID put: otlTrace.
+
+		spansByMethods
+			at: otlTrace methodSignature
+			ifPresent: [ :elmnt | elmnt add: otlTrace ]
+			ifAbsentPut: [ 
+				| array |
+				array := OrderedCollection new.
+				array add: otlTrace.
+				array ] 
+			 ]
+		
+		]
 ]
 
 { #category : #accessing }
@@ -149,9 +202,9 @@ EGFTraceModel >> resolveMethodFromEGFCallflow: aModel [
 		'Pharo-10.0.0+build.538.sha.179ef655ae2b150009a860b127aa3605366659ca (64 Bit)'.
 	self flag: 'Change the number of max traces'.
 	min := 1.
-	max := tracesInOrder values size / 1.
+	max := spanById values size / 1.
 
-	tracesInOrder values from: min to: max do: [ :trace | 
+	spanById values from: min to: max do: [ :trace | 
 		| identifier nbParms signature candidates "filtered" |
 		signature := trace methodSignature.
 		identifier := signature copyFrom: 1 to: (signature indexOf: $().
@@ -174,7 +227,7 @@ EGFTraceModel >> resolveMethodFromEGFCallflow: aModel [
 { #category : #'as yet unclassified' }
 EGFTraceModel >> resolveMethodFromEGFCallflowV2: aModel [
 
-	tracesGrpBySignature keysDo: [ :signature | 
+	spansByMethods keysDo: [ :signature | 
 		| identifier candidates "filtered" |
 		identifier := signature copyFrom: 1 to: (signature indexOf: $().
 
@@ -185,10 +238,10 @@ EGFTraceModel >> resolveMethodFromEGFCallflowV2: aModel [
 			              withSignature: signature.
 
 
-		(tracesGrpBySignature at: signature) do: [ :trace | 
+		(spansByMethods at: signature) do: [ :trace | 
 			trace famixMethodCandidates: candidates ] ].
 
-	tracesGrpBySignature := (tracesGrpBySignature associations reject: [ 
+	spansByMethods := (spansByMethods associations reject: [ 
 		                        :assoc | 
 		                        assoc value anyOne famixMethodCandidates
 			                        isEmpty ]) asDictionary .
@@ -197,19 +250,19 @@ EGFTraceModel >> resolveMethodFromEGFCallflowV2: aModel [
 ]
 
 { #category : #accessing }
-EGFTraceModel >> traces [
+EGFTraceModel >> spanById [
 
-	^ tracesInOrder
+	^ spanById
 ]
 
 { #category : #accessing }
-EGFTraceModel >> traces: anObject [
+EGFTraceModel >> spanById: anObject [
 
-	tracesInOrder := anObject
+	spanById := anObject
 ]
 
 { #category : #accessing }
-EGFTraceModel >> tracesGrpBySignature [
+EGFTraceModel >> spanByMethods [
 
-	^ tracesGrpBySignature
+	^ spansByMethods
 ]

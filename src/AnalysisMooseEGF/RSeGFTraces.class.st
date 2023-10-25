@@ -12,11 +12,11 @@ Class {
 RSeGFTraces >> buildCanvas [
 
 	| shapes colorPalette edges methodToTraces lines colorPaletteLines |
-	self computeTraceHistoric.
+	"self computeTraceHistoric."
 	edges := self computeEdgeTraces.
 
 	methodToTraces := self computeFamixMethodToTraces.
-	
+
 	colorPalette := NSScale sqrt
 		                range: { 
 				                Color white.
@@ -32,7 +32,7 @@ RSeGFTraces >> buildCanvas [
 
 	canvas := RSCanvas new.
 
-	shapes := model tracesGrpBySignature associations collect: [ :assoc | 
+	shapes := model spanByMethods associations collect: [ :assoc | 
 		          | rsMth signature trace |
 		          signature := assoc key.
 		          trace := assoc value anyOne.
@@ -99,7 +99,7 @@ RSeGFTraces >> computeEdgeTraces [
 
 	| checker traces sequences max |
 	checker := OrderedCollection new.
-	traces := model traces values.
+	traces := model spanById values.
 	max := traces size.
 	1 to: max do: [ :i | 
 		| trace |
@@ -132,26 +132,25 @@ RSeGFTraces >> computeEdgeTraces [
 { #category : #'as yet unclassified' }
 RSeGFTraces >> computeFamixMethodToTraces [
 
-	^ (model tracesGrpBySignature associations collect: [ :assoc | 
+	^ (model spanByMethods associations collect: [ :assoc | 
 		  assoc value anyOne famixMethodCandidates anyOne -> assoc value ]) asDictionary 
 ]
 
 { #category : #'as yet unclassified' }
 RSeGFTraces >> computeTraceHistoric [
 
-	| historic i|
+	| historic i |
 	historic := OrderedDictionary new.
 	i := 0.
-	model traces values do: [ :t | 
+	model spanById values do: [ :t | 
 		| fmxMth |
-		fmxMth := t famixMethodCandidates ifNotEmpty: #anyOne ifEmpty: nil .
+		fmxMth := t famixMethodCandidates ifNotEmpty: #anyOne ifEmpty: nil.
 		fmxMth ifNotNil: [ 
 			i := i + 1.
 			historic
 				at: fmxMth
 				ifPresent: [ 
-					|orders|
-					
+					| orders |
 					orders := historic at: fmxMth.
 					orders add: t order.
 					historic at: fmxMth put: orders ]
@@ -159,7 +158,7 @@ RSeGFTraces >> computeTraceHistoric [
 					historic at: fmxMth put: (OrderedCollection new
 							 add: t order;
 							 yourself) ] ] ].
-	1 halt.
+	
 	^ historic
 ]
 

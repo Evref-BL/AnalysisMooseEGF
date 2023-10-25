@@ -1,5 +1,5 @@
 Class {
-	#name : #OtelTrace,
+	#name : #OTelSpan,
 	#superclass : #Object,
 	#instVars : [
 		'parentID',
@@ -8,66 +8,68 @@ Class {
 		'timestamp',
 		'famixMethodCandidates',
 		'methodSignature',
-		'order'
+		'order',
+		'stackcall',
+		'threadID'
 	],
 	#category : #AnalysisMooseEGF
 }
 
 { #category : #accessing }
-OtelTrace >> famixMethodCandidates [
+OTelSpan >> famixMethodCandidates [
 
 	^ famixMethodCandidates
 ]
 
 { #category : #accessing }
-OtelTrace >> famixMethodCandidates: anObject [
+OTelSpan >> famixMethodCandidates: anObject [
 
 	famixMethodCandidates := anObject
 ]
 
 { #category : #initialization }
-OtelTrace >> initialize [ 	
+OTelSpan >> initialize [ 	
 	famixMethodCandidates := OrderedCollection new.
 ]
 
 { #category : #accessing }
-OtelTrace >> methodSignature [
+OTelSpan >> methodSignature [
 
 	^ methodSignature
 ]
 
 { #category : #accessing }
-OtelTrace >> methodSignature: anObject [
+OTelSpan >> methodSignature: anObject [
 
 	methodSignature := anObject
 ]
 
 { #category : #accessing }
-OtelTrace >> order [
+OTelSpan >> order [
 
 	^ order
 ]
 
 { #category : #accessing }
-OtelTrace >> order: anObject [
+OTelSpan >> order: anObject [
 
 	order := anObject
 ]
 
 { #category : #accessing }
-OtelTrace >> parentID [
+OTelSpan >> parentID [
 
 	^ parentID
 ]
 
 { #category : #accessing }
-OtelTrace >> parentID: anObject [
+OTelSpan >> parentID: anObject [
 
 	parentID := anObject
 ]
 
 { #category : #'as yet unclassified' }
-OtelTrace >> refineCandidates [
+OTelSpan >> refineCandidates [
 
 	| candidates filtered parms |
 
@@ -105,37 +107,59 @@ OtelTrace >> refineCandidates [
 ]
 
 { #category : #accessing }
-OtelTrace >> spanID [
+OTelSpan >> spanID [
 
 	^ spanID
 ]
 
 { #category : #'as yet unclassified' }
-OtelTrace >> spanID: aString [
+OTelSpan >> spanID: aString [
 
 	spanID := aString. 
 ]
 
+{ #category : #setter }
+OTelSpan >> stackcall [
+
+	^ stackcall 
+]
+
+{ #category : #setter }
+OTelSpan >> stackcall: aString [ 
+	stackcall := aString
+]
+
+{ #category : #setter }
+OTelSpan >> threadID [
+
+	^ threadID
+]
+
+{ #category : #setter }
+OTelSpan >> threadID: anUndefinedObject [ 
+	threadID := anUndefinedObject
+]
+
 { #category : #accessing }
-OtelTrace >> timestamp [
+OTelSpan >> timestamp [
 
 	^ timestamp
 ]
 
 { #category : #accessing }
-OtelTrace >> timestamp: anObject [
+OTelSpan >> timestamp: anObject [
 
 	timestamp := anObject
 ]
 
 { #category : #accessing }
-OtelTrace >> traceID [
+OTelSpan >> traceID [
 
 	^ traceID
 ]
 
 { #category : #accessing }
-OtelTrace >> traceID: anObject [
+OTelSpan >> traceID: anObject [
 
 	traceID := anObject
 ]
