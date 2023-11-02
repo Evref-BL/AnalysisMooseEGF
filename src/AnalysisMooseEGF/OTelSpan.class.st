@@ -10,10 +10,23 @@ Class {
 		'methodSignature',
 		'order',
 		'stackcall',
-		'threadID'
+		'threadID',
+		'famixIncomingMethodCandidates'
 	],
 	#category : #AnalysisMooseEGF
 }
+
+{ #category : #accessing }
+OTelSpan >> famixIncomingMethodCandidates [
+
+	^ famixIncomingMethodCandidates
+]
+
+{ #category : #accessing }
+OTelSpan >> famixIncomingMethodCandidates: anObject [
+
+	famixIncomingMethodCandidates := anObject
+]
 
 { #category : #accessing }
 OTelSpan >> famixMethodCandidates [

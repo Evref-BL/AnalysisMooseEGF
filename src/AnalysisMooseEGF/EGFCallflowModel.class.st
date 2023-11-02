@@ -138,7 +138,7 @@ EGFCallflowModel >> computeClassGroupV2From: methods [
 	methods keysDo: [ :meth | 
 		| class |
 		class := meth parentType.
-
+		
 		seenClasses
 			at: class
 			ifPresent: [ :v | v add: meth ]

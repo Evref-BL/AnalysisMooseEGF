@@ -1,6 +1,21 @@
 Extension { #name : #FamixJavaContainerEntity }
 
 { #category : #'*AnalysisMooseEGF' }
+FamixJavaContainerEntity >> mooseNameWithDots [
+
+	self resetMooseName.
+	^ self mooseName ifNotNil: [ '.' join: (self mooseName substrings: '::') ].
+]
+
+{ #category : #'*AnalysisMooseEGF' }
+FamixJavaContainerEntity >> mooseNameWithDotsJVMFormat [
+
+
+	self resetMooseName.
+	^ 	self mooseName ifNotNil: [ :mName |  '.' join: (mName substrings: '::') ]
+]
+
+{ #category : #'*AnalysisMooseEGF' }
 FamixJavaContainerEntity >> mooseNameWithDotsNoParenthesis [
 
 	| res |

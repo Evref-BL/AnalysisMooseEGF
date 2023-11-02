@@ -27,7 +27,10 @@ BaselineOfAnalysisMooseEGF >> defineDependencies: spec [
 	
 	spec
 				baseline: 'Roassal3'
-				with: [ spec repository: 'github://ObjectProfile/Roassal3/src' ]
+				with: [ spec repository: 'github://ObjectProfile/Roassal3/src' ].
+	spec
+				baseline: 'FamixOpenTelemetry'
+				with: [ spec repository: 'github://moosetechnology/Famix-OpenTelemetry/src' ]
 ]
 
 { #category : #defaults }
@@ -41,5 +44,6 @@ BaselineOfAnalysisMooseEGF >> definePackages: spec [
 	spec
 		package: 'AnalysisMooseEGF';
 		package: 'Moose';
+		package: 'FamixOpenTelemetry';
 		package: 'Roassal3'
 ]
