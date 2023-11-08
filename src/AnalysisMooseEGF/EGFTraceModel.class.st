@@ -71,6 +71,14 @@ EGFTraceModel >> importedOtelTraces: anObject [
 ]
 
 { #category : #'as yet unclassified' }
+EGFTraceModel >> importedTracesFromProfiler: aFamixJVMProfilerModel [ 
+	| processes |
+	processes := aFamixJVMProfilerModel entities select: [ :entity | 
+		         entity className = #FamixJVMProfilerProcess ].
+	processes.
+]
+
+{ #category : #'as yet unclassified' }
 EGFTraceModel >> initialize [
 
 	rawStack := String new.
