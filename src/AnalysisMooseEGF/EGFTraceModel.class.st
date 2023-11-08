@@ -152,7 +152,7 @@ EGFTraceModel >> refineCandidates: candidates withSignature: methodSignature [
 	filtered := candidates select: [ :m | m numberOfParameters = nbParms ].
 	"check if the paremeters are of the same type "
 	filtered := filtered select: [ :m | 
-		            | mtdParms check mooseSignature parmNames orderedMooseParams|
+		            | check mooseSignature parmNames orderedMooseParams|
 		            check := true.
 		
 						"regexMtdSignature := (m mooseNameWithDots) replaceAllRegex: '<.*>' with: ''."
@@ -211,9 +211,12 @@ EGFTraceModel >> resolveFamixMethodWithEGFCallflow: aModel [
 
 
 		candidates := aModel methodsNamed: identifier.
-		candidates := self
+		"candidates := self
 			              refineCandidates: candidates
+			              withSignature: signature."
+			candidates := Trace2FamixResolver new  refineCandidates: candidates
 			              withSignature: signature.
+
 
 
 		(spansByMethods at: signature) do: [ :trace | 
@@ -414,8 +417,10 @@ EGFTraceModel >> resolveMethodFromEGFCallflowV2: aModel [
 
 
 		candidates := aModel methodsNamed: identifier.
-		candidates := self
+		"candidates := self
 			              refineCandidates: candidates
+			              withSignature: signature."
+		candidates := Trace2FamixResolver new  refineCandidates: candidates
 			              withSignature: signature.
 
 

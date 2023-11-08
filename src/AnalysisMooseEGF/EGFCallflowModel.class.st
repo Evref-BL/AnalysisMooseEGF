@@ -399,7 +399,7 @@ EGFCallflowModel >> methods [
 EGFCallflowModel >> methodsNamed: aString [
 
 	"return the methods are named like so"
-
+	aString isEmpty ifTrue: [ ^ {  } ].
 	^ self methods keys select: [ :m | 
 		  | methodName bool |
 		  methodName := m mooseNameWithDotsNoParenthesis, '('.
