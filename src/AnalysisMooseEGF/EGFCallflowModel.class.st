@@ -426,6 +426,14 @@ EGFCallflowModel >> methodsToObserve [
 	  \ (self flattenMethods keys select: #isSetter)
 ]
 
+{ #category : #reset }
+EGFCallflowModel >> resetTraceProcess [
+	flattenMethods keysDo: [ :m | 
+		m JVMProcesses removeAll.
+		
+		 ]
+]
+
 { #category : #'as yet unclassified' }
 EGFCallflowModel >> setterMethods [
 

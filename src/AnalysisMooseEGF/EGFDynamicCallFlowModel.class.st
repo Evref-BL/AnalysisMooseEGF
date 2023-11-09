@@ -28,8 +28,9 @@ EGFDynamicCallFlowModel >> compute [
 			              withSignature: stepSignature.
 				 ].
 			
-
-			candidates ifNotEmpty: [  step origin: 	candidates first ].	
+			candidates ifNotEmpty: [  	
+				
+				step origin: candidates first. 	 ].	
 		
 		 ]
 	
@@ -38,6 +39,11 @@ EGFDynamicCallFlowModel >> compute [
 { #category : #'as yet unclassified' }
 EGFDynamicCallFlowModel >> profilerModel: aFamixJVMProfilerModel [ 
 	profiler := aFamixJVMProfilerModel.
+]
+
+{ #category : #reset }
+EGFDynamicCallFlowModel >> resetModelLinks: anEGFCallflowModel [ 
+	anEGFCallflowModel resetTraceProcess.
 ]
 
 { #category : #'as yet unclassified' }
